@@ -57,7 +57,7 @@ jobs:
           echo "- [ ] Enable secret scanning" >> audit-report.md
           echo "- [ ] Enable push protection for secrets" >> audit-report.md
           echo "- [ ] Configure security policy (SECURITY.md)" >> audit-report.md
-          
+
       - name: Upload audit report
         uses: actions/upload-artifact@v4
         with:

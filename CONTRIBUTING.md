@@ -198,7 +198,7 @@ git checkout -b fix/your-bug-fix
 
 Branch naming conventions:
 - `feature/` - New features
-- `fix/` - Bug fixes  
+- `fix/` - Bug fixes
 - `docs/` - Documentation changes
 - `refactor/` - Code refactoring
 - `test/` - Adding tests

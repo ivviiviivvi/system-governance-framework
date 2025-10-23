@@ -1,15 +1,19 @@
-name: CI
+name: Continuous Integration
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 jobs:
   pre-commit:
+    name: Pre-commit Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,20 +36,7 @@ jobs:
 
       - name: Run pre-commit
         run: pre-commit run --all-files --show-diff-on-failure
-name: Continuous Integration
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-
-jobs:
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest

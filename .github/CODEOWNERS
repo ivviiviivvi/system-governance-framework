@@ -1,8 +1,8 @@
 * @4-b100m
 # CODEOWNERS file for System Governance Framework
-# 
+#
 # This file defines individuals or teams that are responsible for code in this repository.
-# Code owners are automatically requested for review when someone opens a pull request 
+# Code owners are automatically requested for review when someone opens a pull request
 # that modifies code that they own.
 #
 # For more information, see:
