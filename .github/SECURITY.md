@@ -7,7 +7,7 @@ If you believe you've found a security issue in this repository, please **do not
 ### How to Report
 
 - **Preferred**: Use GitHub's [Private Security Advisory](https://github.com/4-b100m/system-governance-framework/security/advisories/new) feature
-- **Alternative**: Contact the maintainers directly at security@[domain] or through the repository owner's GitHub profile
+- **Alternative**: Contact the maintainers directly through the repository owner's GitHub profile
 
 ### What to Include
 
