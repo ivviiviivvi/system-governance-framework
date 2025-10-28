@@ -181,7 +181,7 @@ Provide a complete, modular, and extensible governance framework that:
 - [ ] Organize governance workshops
 
 **Timeline**: 10 weeks
-**KPIs**: 
+**KPIs**:
 - 50+ active contributors
 - 500+ stars
 - 10+ case studies
@@ -465,7 +465,7 @@ We welcome contributions to help achieve this roadmap:
 
 This roadmap represents our ambitious vision for the System Governance Framework. While comprehensive, it remains flexible and will evolve based on community needs, technological advances, and emerging governance challenges.
 
-**Our commitment**: 
+**Our commitment**:
 - Transparency in decision-making
 - Community-driven priorities
 - Sustainable development pace

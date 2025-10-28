@@ -9,7 +9,7 @@ estimated_effort: 2-4 hours
 ```
 
 ## Assigned Agent
-**Primary**: documentation_agent  
+**Primary**: documentation_agent
 **Validator**: validator_agent
 
 ## Task Description
@@ -104,20 +104,20 @@ Update, improve, or create documentation following project standards.
 - [ ] Related document updates (if any)
 
 ## Success Criteria
-✓ Documentation is accurate and complete  
-✓ All links are functional  
-✓ Examples are tested and working  
-✓ Style is consistent with project  
-✓ Markdown linter passes  
-✓ Validator agent approves  
+✓ Documentation is accurate and complete
+✓ All links are functional
+✓ Examples are tested and working
+✓ Style is consistent with project
+✓ Markdown linter passes
+✓ Validator agent approves
 
 ## Common Pitfalls to Avoid
-⚠️ Breaking existing links  
-⚠️ Inconsistent terminology  
-⚠️ Outdated examples  
-⚠️ Missing cross-references  
-⚠️ Poor formatting  
-⚠️ Incomplete context in handoff  
+⚠️ Breaking existing links
+⚠️ Inconsistent terminology
+⚠️ Outdated examples
+⚠️ Missing cross-references
+⚠️ Poor formatting
+⚠️ Incomplete context in handoff
 
 ## Related Templates
 - [Quality Check Template](quality-check.yml)

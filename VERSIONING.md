@@ -166,8 +166,8 @@ v2.0.0: Feature X removed (with migration guide)
 ### Deprecation Notice Format
 
 ```markdown
-**Deprecated**: Feature X is deprecated as of v1.5.0 and will be 
-removed in v2.0.0. Please use Feature Y instead. 
+**Deprecated**: Feature X is deprecated as of v1.5.0 and will be
+removed in v2.0.0. Please use Feature Y instead.
 See [Migration Guide](link) for details.
 ```
 

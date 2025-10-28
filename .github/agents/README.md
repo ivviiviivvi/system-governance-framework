@@ -139,13 +139,13 @@ context:
   - document: README.md
   - change_type: enhancement
   - scope: add_examples
-  
+
 requirements:
   - maintain_existing_structure
   - add_code_examples
   - update_table_of_contents
   - validate_links
-  
+
 handoff:
   next_agent: validator_agent
   validation_required: true

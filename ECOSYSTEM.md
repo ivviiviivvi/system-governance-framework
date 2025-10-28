@@ -388,7 +388,7 @@ Metrics & Analytics
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
@@ -412,7 +412,7 @@ on:
       scan-type:
         required: true
         type: string
-        
+
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -528,7 +528,7 @@ Add new workflows to `.github/workflows/`:
 name: Custom Governance Check
 on:
   pull_request:
-    
+
 jobs:
   custom-check:
     runs-on: ubuntu-latest
@@ -591,7 +591,7 @@ rules:
 module.exports = {
   name: 'custom-plugin',
   version: '1.0.0',
-  
+
   hooks: {
     onPullRequest: async (context) => {
       // Custom logic
@@ -832,7 +832,7 @@ module.exports = {
 
 ## Conclusion
 
-The System Governance Framework ecosystem is designed as a comprehensive, extensible platform that combines the best practices from successful open-source projects with modern automation and AI-assisted workflows. 
+The System Governance Framework ecosystem is designed as a comprehensive, extensible platform that combines the best practices from successful open-source projects with modern automation and AI-assisted workflows.
 
 **Key Takeaways**:
 1. **Modular by Design**: Easy to adopt pieces or the whole framework
