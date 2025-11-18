@@ -1,0 +1,116 @@
+name: 'Load Governance Configuration'
+description: 'Load and validate the governance.yml configuration file'
+author: '4-b100m'
+
+inputs:
+  config-path:
+    description: 'Path to governance configuration file'
+    required: false
+    default: '.github/governance.yml'
+  validate:
+    description: 'Validate configuration against schema'
+    required: false
+    default: 'true'
+
+outputs:
+  config:
+    description: 'Parsed configuration as JSON'
+    value: ${{ steps.load.outputs.config }}
+  preset:
+    description: 'Configuration preset being used'
+    value: ${{ steps.load.outputs.preset }}
+  version:
+    description: 'Framework version specified in config'
+    value: ${{ steps.load.outputs.version }}
+  valid:
+    description: 'Whether configuration is valid'
+    value: ${{ steps.load.outputs.valid }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if config exists
+      id: check
+      shell: bash
+      run: |
+        if [ ! -f "${{ inputs.config-path }}" ]; then
+          echo "⚠️  Configuration file not found: ${{ inputs.config-path }}"
+          echo "📝 Using default 'standard' preset"
+          echo "exists=false" >> $GITHUB_OUTPUT
+        else
+          echo "✅ Configuration file found: ${{ inputs.config-path }}"
+          echo "exists=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Load configuration
+      id: load
+      shell: bash
+      run: |
+        CONFIG_FILE="${{ inputs.config-path }}"
+
+        if [ "${{ steps.check.outputs.exists }}" = "false" ]; then
+          # Use default standard preset
+          echo "Loading default standard preset..."
+
+          CONFIG_JSON='{
+            "framework": {
+              "version": "3.0.0",
+              "preset": "standard"
+            },
+            "features": {
+              "ci": {"enabled": true, "test-coverage": true, "parallel-jobs": 3},
+              "security": {"enabled": true, "codeql": true, "dependency-scan": true},
+              "quality": {"enabled": true, "linting": true, "pre-commit": true},
+              "dependabot": {"enabled": true, "schedule": "weekly", "auto-merge": "none"}
+            }
+          }'
+
+          echo "config=$CONFIG_JSON" >> $GITHUB_OUTPUT
+          echo "preset=standard" >> $GITHUB_OUTPUT
+          echo "version=3.0.0" >> $GITHUB_OUTPUT
+          echo "valid=true" >> $GITHUB_OUTPUT
+        else
+          # Install yq if needed for YAML parsing
+          if ! command -v yq &> /dev/null; then
+            echo "Installing yq for YAML parsing..."
+            wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            chmod +x /usr/local/bin/yq
+          fi
+
+          # Parse YAML to JSON
+          CONFIG_JSON=$(yq eval -o=json "$CONFIG_FILE")
+
+          # Extract key values
+          PRESET=$(echo "$CONFIG_JSON" | jq -r '.framework.preset // "standard"')
+          VERSION=$(echo "$CONFIG_JSON" | jq -r '.framework.version // "3.0.0"')
+
+          echo "config=$CONFIG_JSON" >> $GITHUB_OUTPUT
+          echo "preset=$PRESET" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Basic validation
+          if [ "${{ inputs.validate }}" = "true" ]; then
+            echo "Validating configuration..."
+
+            # Check required fields
+            if ! echo "$CONFIG_JSON" | jq -e '.framework' > /dev/null; then
+              echo "❌ Invalid config: Missing 'framework' section"
+              echo "valid=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
+            echo "✅ Configuration valid"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "valid=true" >> $GITHUB_OUTPUT
+          fi
+
+          echo ""
+          echo "📋 Configuration Summary:"
+          echo "  Preset: $PRESET"
+          echo "  Version: $VERSION"
+        fi
+
+branding:
+  icon: 'file-text'
+  color: 'green'

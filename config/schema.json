@@ -1,0 +1,239 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/4-b100m/system-governance-framework/main/config/schema.json",
+  "title": "System Governance Framework Configuration",
+  "description": "Configuration schema for the System Governance Framework",
+  "type": "object",
+  "required": ["framework"],
+  "properties": {
+    "framework": {
+      "type": "object",
+      "description": "Framework metadata and version information",
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Framework version to use (semver)",
+          "pattern": "^v?\\d+\\.\\d+\\.\\d+$",
+          "examples": ["3.0.0", "v3.1.2"]
+        },
+        "preset": {
+          "type": "string",
+          "description": "Configuration preset to use",
+          "enum": ["minimal", "standard", "enterprise"],
+          "default": "standard"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "description": "Project-specific configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name"
+        },
+        "languages": {
+          "type": "array",
+          "description": "Programming languages used in the project",
+          "items": {
+            "type": "string",
+            "enum": [
+              "python",
+              "javascript",
+              "typescript",
+              "go",
+              "java",
+              "rust",
+              "ruby",
+              "php",
+              "csharp",
+              "swift",
+              "kotlin",
+              "scala"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "frameworks": {
+          "type": "array",
+          "description": "Frameworks used (for framework-specific optimizations)",
+          "items": {
+            "type": "string",
+            "examples": ["django", "flask", "react", "vue", "angular", "spring", "rails"]
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "Feature toggles and configuration",
+      "properties": {
+        "ci": {
+          "type": "object",
+          "description": "Continuous Integration configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable CI workflows"
+            },
+            "test-coverage": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable test coverage reporting"
+            },
+            "parallel-jobs": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 3,
+              "description": "Number of parallel test jobs"
+            }
+          }
+        },
+        "security": {
+          "type": "object",
+          "description": "Security scanning configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable security workflows"
+            },
+            "codeql": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable CodeQL security scanning"
+            },
+            "semgrep": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable Semgrep security scanning (Pro feature)"
+            },
+            "dependency-scan": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable dependency vulnerability scanning"
+            },
+            "license-check": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable license compliance checking"
+            },
+            "security-scorecard": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable OSSF Security Scorecard"
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "description": "Code quality configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable quality workflows"
+            },
+            "linting": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable code linting"
+            },
+            "pre-commit": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable pre-commit hooks"
+            },
+            "super-linter": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable GitHub Super-Linter"
+            }
+          }
+        },
+        "dependabot": {
+          "type": "object",
+          "description": "Dependabot configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable Dependabot"
+            },
+            "schedule": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly"],
+              "default": "weekly",
+              "description": "Update check frequency"
+            },
+            "auto-merge": {
+              "type": "string",
+              "enum": ["none", "patch", "minor", "all"],
+              "default": "none",
+              "description": "Auto-merge policy for dependency updates"
+            }
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "description": "Compliance and audit configuration (Enterprise feature)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable compliance workflows"
+            },
+            "soc2": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable SOC2 compliance checking"
+            },
+            "gdpr": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable GDPR compliance checking"
+            },
+            "hipaa": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable HIPAA compliance checking"
+            }
+          }
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "description": "Notification configuration",
+      "properties": {
+        "slack": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "webhook-url-secret": {
+              "type": "string",
+              "description": "GitHub secret name containing Slack webhook URL"
+            },
+            "channels": {
+              "type": "object",
+              "properties": {
+                "ci-failures": {
+                  "type": "string"
+                },
+                "security-alerts": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

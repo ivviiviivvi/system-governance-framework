@@ -1,0 +1,50 @@
+# System Governance Framework - Minimal Preset
+# Perfect for: Small projects, prototypes, personal repositories
+# Features: Basic CI, essential quality checks, minimal overhead
+
+framework:
+  version: "3.0.0"
+  preset: "minimal"
+
+project:
+  # Auto-detected if not specified
+  languages: []
+  frameworks: []
+
+features:
+  # Continuous Integration - Essential only
+  ci:
+    enabled: true
+    test-coverage: false  # No coverage reporting to reduce complexity
+    parallel-jobs: 1      # Single job to minimize CI minutes
+
+  # Security - Basic protection
+  security:
+    enabled: true
+    codeql: false          # Disabled to reduce CI time
+    semgrep: false         # Pro feature, disabled
+    dependency-scan: true  # Keep basic dependency scanning
+    license-check: false   # Not needed for minimal setup
+    security-scorecard: false
+
+  # Quality - Core checks only
+  quality:
+    enabled: true
+    linting: true          # Basic linting enabled
+    pre-commit: false      # Optional for contributors
+    super-linter: false    # Too comprehensive for minimal
+
+  # Dependabot - Disabled (manual updates)
+  dependabot:
+    enabled: false
+    schedule: "weekly"
+    auto-merge: "none"
+
+  # Compliance - Not applicable
+  compliance:
+    enabled: false
+
+# No notification integrations
+notifications:
+  slack:
+    enabled: false

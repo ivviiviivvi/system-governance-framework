@@ -1,0 +1,309 @@
+name: 'Reusable CI Workflow'
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: 'Path to governance.yml configuration file'
+        required: false
+        type: string
+        default: '.github/governance.yml'
+      languages:
+        description: 'Override language detection (JSON array or "auto")'
+        required: false
+        type: string
+        default: 'auto'
+      coverage-enabled:
+        description: 'Override coverage reporting setting'
+        required: false
+        type: boolean
+        default: null
+    secrets:
+      codecov-token:
+        description: 'Codecov token for coverage upload'
+        required: false
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  setup:
+    name: Configuration & Detection
+    runs-on: ubuntu-latest
+    outputs:
+      config: ${{ steps.load-config.outputs.config }}
+      languages: ${{ steps.detect-languages.outputs.languages }}
+      has-python: ${{ steps.detect-languages.outputs.has-python }}
+      has-javascript: ${{ steps.detect-languages.outputs.has-javascript }}
+      has-go: ${{ steps.detect-languages.outputs.has-go }}
+      has-java: ${{ steps.detect-languages.outputs.has-java }}
+      ci-enabled: ${{ steps.check-features.outputs.ci-enabled }}
+      coverage-enabled: ${{ steps.check-features.outputs.coverage-enabled }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load governance configuration
+        id: load-config
+        uses: 4-b100m/system-governance-framework/.github/actions/load-config@v3.0.0
+        with:
+          config-path: ${{ inputs.config-path }}
+
+      - name: Detect project languages
+        id: detect-languages
+        uses: 4-b100m/system-governance-framework/.github/actions/detect-languages@v3.0.0
+        with:
+          override: ${{ inputs.languages }}
+
+      - name: Check feature flags
+        id: check-features
+        run: |
+          CONFIG='${{ steps.load-config.outputs.config }}'
+
+          # Check if CI is enabled
+          CI_ENABLED=$(echo "$CONFIG" | jq -r '.features.ci.enabled // true')
+          echo "ci-enabled=$CI_ENABLED" >> $GITHUB_OUTPUT
+
+          # Check if coverage is enabled (input override takes precedence)
+          if [ "${{ inputs.coverage-enabled }}" != "null" ]; then
+            COVERAGE_ENABLED="${{ inputs.coverage-enabled }}"
+          else
+            COVERAGE_ENABLED=$(echo "$CONFIG" | jq -r '.features.ci["test-coverage"] // true')
+          fi
+          echo "coverage-enabled=$COVERAGE_ENABLED" >> $GITHUB_OUTPUT
+
+          echo "📋 Feature Flags:"
+          echo "  CI Enabled: $CI_ENABLED"
+          echo "  Coverage Enabled: $COVERAGE_ENABLED"
+
+  pre-commit:
+    name: Pre-commit Hooks
+    runs-on: ubuntu-latest
+    needs: setup
+    if: fromJSON(needs.setup.outputs.config).features.quality.enabled != false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  test-python:
+    name: Test Python
+    runs-on: ubuntu-latest
+    needs: setup
+    if: |
+      fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
+      needs.setup.outputs.has-python == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
+          if [ -f pyproject.toml ]; then
+            pip install -e .[dev] || pip install -e .
+          fi
+
+      - name: Run tests
+        run: |
+          if command -v pytest &> /dev/null; then
+            if [ "${{ needs.setup.outputs.coverage-enabled }}" = "true" ]; then
+              pytest --cov --cov-report=xml --cov-report=term
+            else
+              pytest
+            fi
+          else
+            echo "⚠️  pytest not found, skipping tests"
+          fi
+
+      - name: Upload coverage
+        if: needs.setup.outputs.coverage-enabled == 'true' && secrets.codecov-token != ''
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.codecov-token }}
+          file: ./coverage.xml
+          flags: python
+          fail_ci_if_error: false
+
+  test-javascript:
+    name: Test JavaScript/TypeScript
+    runs-on: ubuntu-latest
+    needs: setup
+    if: |
+      fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
+      needs.setup.outputs.has-javascript == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          if npm run test -- --help &> /dev/null; then
+            if [ "${{ needs.setup.outputs.coverage-enabled }}" = "true" ]; then
+              npm run test -- --coverage
+            else
+              npm test
+            fi
+          else
+            echo "⚠️  No test script found, skipping"
+          fi
+
+      - name: Upload coverage
+        if: needs.setup.outputs.coverage-enabled == 'true' && secrets.codecov-token != ''
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.codecov-token }}
+          flags: javascript
+          fail_ci_if_error: false
+
+  test-go:
+    name: Test Go
+    runs-on: ubuntu-latest
+    needs: setup
+    if: |
+      fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
+      needs.setup.outputs.has-go == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run tests
+        run: |
+          if [ "${{ needs.setup.outputs.coverage-enabled }}" = "true" ]; then
+            go test -v -coverprofile=coverage.out ./...
+          else
+            go test -v ./...
+          fi
+
+      - name: Upload coverage
+        if: needs.setup.outputs.coverage-enabled == 'true' && secrets.codecov-token != ''
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.codecov-token }}
+          file: ./coverage.out
+          flags: go
+          fail_ci_if_error: false
+
+  test-java:
+    name: Test Java
+    runs-on: ubuntu-latest
+    needs: setup
+    if: |
+      fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
+      needs.setup.outputs.has-java == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run tests (Maven)
+        if: hashFiles('**/pom.xml') != ''
+        run: mvn test
+
+      - name: Run tests (Gradle)
+        if: hashFiles('**/build.gradle*') != ''
+        run: ./gradlew test
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [setup, pre-commit, test-python, test-javascript, test-go, test-java]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🎯 CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Preset:** ${{ fromJSON(needs.setup.outputs.config).framework.preset }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ fromJSON(needs.setup.outputs.config).framework.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Detected Languages" >> $GITHUB_STEP_SUMMARY
+          echo "${{ needs.setup.outputs.languages }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Results" >> $GITHUB_STEP_SUMMARY
+
+          # Check job results
+          if [ "${{ needs.pre-commit.result }}" = "success" ]; then
+            echo "- ✅ Pre-commit checks passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.pre-commit.result }}" = "failure" ]; then
+            echo "- ❌ Pre-commit checks failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test-python.result }}" = "success" ]; then
+            echo "- ✅ Python tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-python.result }}" = "failure" ]; then
+            echo "- ❌ Python tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test-javascript.result }}" = "success" ]; then
+            echo "- ✅ JavaScript tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-javascript.result }}" = "failure" ]; then
+            echo "- ❌ JavaScript tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test-go.result }}" = "success" ]; then
+            echo "- ✅ Go tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-go.result }}" = "failure" ]; then
+            echo "- ❌ Go tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.test-java.result }}" = "success" ]; then
+            echo "- ✅ Java tests passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.test-java.result }}" = "failure" ]; then
+            echo "- ❌ Java tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
