@@ -1,0 +1,168 @@
+name: 'Detect Project Languages'
+description: 'Automatically detect programming languages and frameworks in the repository'
+author: '4-b100m'
+
+inputs:
+  override:
+    description: 'Override auto-detection with specific languages (JSON array or "auto")'
+    required: false
+    default: 'auto'
+
+outputs:
+  languages:
+    description: 'JSON array of detected languages'
+    value: ${{ steps.detect.outputs.languages }}
+  has-python:
+    description: 'Whether Python code was detected'
+    value: ${{ steps.detect.outputs.has-python }}
+  has-javascript:
+    description: 'Whether JavaScript/TypeScript code was detected'
+    value: ${{ steps.detect.outputs.has-javascript }}
+  has-go:
+    description: 'Whether Go code was detected'
+    value: ${{ steps.detect.outputs.has-go }}
+  has-java:
+    description: 'Whether Java code was detected'
+    value: ${{ steps.detect.outputs.has-java }}
+  has-rust:
+    description: 'Whether Rust code was detected'
+    value: ${{ steps.detect.outputs.has-rust }}
+  has-ruby:
+    description: 'Whether Ruby code was detected'
+    value: ${{ steps.detect.outputs.has-ruby }}
+  has-php:
+    description: 'Whether PHP code was detected'
+    value: ${{ steps.detect.outputs.has-php }}
+  has-csharp:
+    description: 'Whether C# code was detected'
+    value: ${{ steps.detect.outputs.has-csharp }}
+  summary:
+    description: 'Human-readable summary of detected languages'
+    value: ${{ steps.detect.outputs.summary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect languages
+      id: detect
+      shell: bash
+      run: |
+        echo "🔍 Detecting project languages..."
+
+        # Initialize arrays
+        LANGUAGES=()
+        SUMMARY=""
+
+        # Check if override provided
+        if [ "${{ inputs.override }}" != "auto" ]; then
+          echo "Using provided languages: ${{ inputs.override }}"
+          echo "languages=${{ inputs.override }}" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Python detection
+        if [[ -f "requirements.txt" ]] || [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "Pipfile" ]]; then
+          LANGUAGES+=("python")
+          echo "has-python=true" >> $GITHUB_OUTPUT
+          echo "  ✓ Python detected"
+        else
+          echo "has-python=false" >> $GITHUB_OUTPUT
+        fi
+
+        # JavaScript/TypeScript detection
+        if [[ -f "package.json" ]]; then
+          if grep -q "typescript" package.json 2>/dev/null; then
+            LANGUAGES+=("typescript")
+            echo "  ✓ TypeScript detected"
+          else
+            LANGUAGES+=("javascript")
+            echo "  ✓ JavaScript detected"
+          fi
+          echo "has-javascript=true" >> $GITHUB_OUTPUT
+        else
+          echo "has-javascript=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Go detection
+        if [[ -f "go.mod" ]] || [[ -f "go.sum" ]]; then
+          LANGUAGES+=("go")
+          echo "has-go=true" >> $GITHUB_OUTPUT
+          echo "  ✓ Go detected"
+        else
+          echo "has-go=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Java detection
+        if [[ -f "pom.xml" ]] || [[ -f "build.gradle" ]] || [[ -f "build.gradle.kts" ]]; then
+          LANGUAGES+=("java")
+          echo "has-java=true" >> $GITHUB_OUTPUT
+          echo "  ✓ Java detected"
+        else
+          echo "has-java=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Rust detection
+        if [[ -f "Cargo.toml" ]]; then
+          LANGUAGES+=("rust")
+          echo "has-rust=true" >> $GITHUB_OUTPUT
+          echo "  ✓ Rust detected"
+        else
+          echo "has-rust=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Ruby detection
+        if [[ -f "Gemfile" ]] || [[ -f "*.gemspec" ]]; then
+          LANGUAGES+=("ruby")
+          echo "has-ruby=true" >> $GITHUB_OUTPUT
+          echo "  ✓ Ruby detected"
+        else
+          echo "has-ruby=false" >> $GITHUB_OUTPUT
+        fi
+
+        # PHP detection
+        if [[ -f "composer.json" ]]; then
+          LANGUAGES+=("php")
+          echo "has-php=true" >> $GITHUB_OUTPUT
+          echo "  ✓ PHP detected"
+        else
+          echo "has-php=false" >> $GITHUB_OUTPUT
+        fi
+
+        # C# detection
+        if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]]; then
+          LANGUAGES+=("csharp")
+          echo "has-csharp=true" >> $GITHUB_OUTPUT
+          echo "  ✓ C# detected"
+        else
+          echo "has-csharp=false" >> $GITHUB_OUTPUT
+        fi
+
+        # Convert array to JSON
+        if [ ${#LANGUAGES[@]} -eq 0 ]; then
+          LANGUAGES_JSON="[]"
+          SUMMARY="No languages detected (template repository)"
+        else
+          # Properly format as JSON array
+          LANGUAGES_JSON="["
+          for i in "${!LANGUAGES[@]}"; do
+            if [ $i -gt 0 ]; then
+              LANGUAGES_JSON+=","
+            fi
+            LANGUAGES_JSON+="\"${LANGUAGES[$i]}\""
+          done
+          LANGUAGES_JSON+="]"
+
+          # Create summary
+          SUMMARY="Detected ${#LANGUAGES[@]} language(s): ${LANGUAGES[*]}"
+        fi
+
+        echo "languages=$LANGUAGES_JSON" >> $GITHUB_OUTPUT
+        echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+
+        echo ""
+        echo "📊 Detection Summary: $SUMMARY"
+        echo "📦 Languages JSON: $LANGUAGES_JSON"
+
+branding:
+  icon: 'search'
+  color: 'blue'

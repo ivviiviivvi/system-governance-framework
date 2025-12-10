@@ -1,0 +1,45 @@
+{
+  "name": "@sgf/system-governance-framework",
+  "version": "3.0.0",
+  "description": "Framework-as-Code for modern software governance: CI/CD, security scanning, and quality enforcement",
+  "keywords": [
+    "governance",
+    "framework",
+    "ci-cd",
+    "security",
+    "github-actions",
+    "devops",
+    "devsecops",
+    "code-quality",
+    "automation"
+  ],
+  "homepage": "https://github.com/4-b100m/system-governance-framework#readme",
+  "bugs": {
+    "url": "https://github.com/4-b100m/system-governance-framework/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4-b100m/system-governance-framework.git"
+  },
+  "license": "MIT",
+  "author": "4-b100m",
+  "files": [
+    ".github/workflows/reusable-*.yml",
+    ".github/actions/**/*",
+    "config/**/*",
+    "scripts/**/*",
+    "README.md",
+    "LICENSE",
+    "VERSION"
+  ],
+  "scripts": {
+    "install": "bash scripts/install-framework.sh",
+    "validate": "bash scripts/validate-config.sh",
+    "version:bump:major": "npm version major --no-git-tag-version && cat package.json | jq -r .version > VERSION",
+    "version:bump:minor": "npm version minor --no-git-tag-version && cat package.json | jq -r .version > VERSION",
+    "version:bump:patch": "npm version patch --no-git-tag-version && cat package.json | jq -r .version > VERSION"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

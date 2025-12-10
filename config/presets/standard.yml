@@ -1,0 +1,54 @@
+# System Governance Framework - Standard Preset
+# Perfect for: Team projects, open-source repositories, production applications
+# Features: Comprehensive CI/CD, security scanning, quality enforcement
+
+framework:
+  version: "3.0.0"
+  preset: "standard"
+
+project:
+  # Auto-detected if not specified
+  languages: []
+  frameworks: []
+
+features:
+  # Continuous Integration - Full featured
+  ci:
+    enabled: true
+    test-coverage: true    # Coverage reporting to Codecov
+    parallel-jobs: 3       # Balanced parallelization
+
+  # Security - Comprehensive scanning
+  security:
+    enabled: true
+    codeql: true           # GitHub CodeQL security analysis
+    semgrep: false         # Pro feature (upgrade for advanced rules)
+    dependency-scan: true  # Dependabot security alerts
+    license-check: false   # Pro feature
+    security-scorecard: false  # Pro feature
+
+  # Quality - Enforced standards
+  quality:
+    enabled: true
+    linting: true          # Multi-language linting
+    pre-commit: true       # Pre-commit hooks for contributors
+    super-linter: false    # Optional (can add overhead)
+
+  # Dependabot - Automated updates
+  dependabot:
+    enabled: true
+    schedule: "weekly"     # Weekly update PRs
+    auto-merge: "none"     # Manual review required
+
+  # Compliance - Not included (Enterprise feature)
+  compliance:
+    enabled: false
+
+# Optional notification integrations
+notifications:
+  slack:
+    enabled: false
+    # webhook-url-secret: "SLACK_WEBHOOK"  # Uncomment and configure
+    # channels:
+    #   ci-failures: "#build-failures"
+    #   security-alerts: "#security"
