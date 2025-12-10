@@ -1,132 +1,140 @@
-# Copilot Instructions for System Governance Framework
+# GitHub Copilot Instructions for System Governance Framework
 
-## 1. Core Principles & Preferences
+## Language and Tool Preferences
 
-### Languages & Tools
-- **Python** (default for scripts/automation) - PEP 8 compliant, Python 3.11+
-- **Markdown** (documentation) - Consistent headers, proper formatting
-- **YAML** (configs/workflows) - 2-space indentation, validated syntax
-- **Package Manager**: `pip` with `requirements.txt` or `pyproject.toml`
-- **Quality Automation**: `pre-commit` for validation hooks
+### Programming Languages
+- Prefer writing **Python** if no language is specified for scripts and automation
+- Use **Markdown** for all documentation files
+- Use **YAML** for GitHub Actions workflows and configuration files
 
-### Response Style
-- Use concise bullet points with minimal preamble
-- Provide working code examples with proper imports
-- Include inline comments only for complex logic
-- Link to specific documentation files when referencing policies
-- Follow existing repository patterns and conventions
+### Package Managers
+- Use **pip** for Python dependencies
+- Use **pre-commit** for code quality hooks and validation
 
-### Commit Format
-Use Conventional Commits specification:
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation only
-- `chore:` Maintenance tasks
-- `refactor:` Code restructuring
-- `test:` Testing changes
-- `ci:` CI/CD pipeline changes
+### Code Quality Standards
+- All Python code must follow PEP 8 style guidelines
+- Use Python 3.11+ features and syntax
+- YAML files must use 2-space indentation
+- Markdown files must follow consistent formatting with proper headers
 
-## 2. Knowledge Base Priority
+## Knowledge Base Priorities
 
-When answering questions, consult these files in order:
+### Documentation References
+When asking about governance, security, or contribution topics, prioritize:
+1. **SECURITY.md** - For vulnerability reporting procedures and security policies
+2. **CONTRIBUTING.md** - For development setup, contribution guidelines, and coding standards
+3. **CODE_OF_CONDUCT.md** - For community behavior and interaction guidelines
+4. **README.md** - For project overview, features, and getting started instructions
+5. **GOVERNANCE_ANALYSIS.md** - For governance framework analysis and best practices
 
-1. **SECURITY.md** → Vulnerability reporting, security policies
-2. **CONTRIBUTING.md** → Development setup, contribution workflow, coding standards
-3. **CODE_OF_CONDUCT.md** → Community standards, behavior expectations
-4. **README.md** → Project overview, features, getting started
-5. **GOVERNANCE_ANALYSIS.md** → Governance framework, decision-making processes
-6. **.github/workflows/** → CI/CD patterns, automation examples
-7. **.pre-commit-config.yaml** → Code quality hook configurations
+### GitHub Actions and CI/CD
+When working with workflows and automation:
+- Reference existing workflow files in `.github/workflows/`
+- Follow GitHub Actions best practices documentation
+- Use pinned versions for actions (e.g., `actions/checkout@v4`)
+- Validate YAML syntax before committing
 
-## 3. Topic-Specific Guidance
+### Pre-commit Hooks
+When modifying or adding pre-commit hooks:
 
-### Security (Critical Priority)
-- **Always** reference `SECURITY.md` for procedures
-- **Never** commit secrets, API keys, tokens, or credentials
-- Pin GitHub Action versions for security: `actions/checkout@v4`
-- Prioritize security fixes over feature development
-- Use Dependabot and GitHub security scanning
-- Validate all user inputs in scripts
+- Reference `.pre-commit-config.yaml` for existing hook configurations
+- Follow pre-commit.com documentation for hook syntax
+- Ensure all hooks are compatible with Python 3.11+
+- Test hooks locally before committing: `pre-commit run --all-files`
 
-### Governance & Compliance
-- Reference `GOVERNANCE_ANALYSIS.md` for framework alignment
-- Document all architectural decisions and policy changes
-- Consider impact on existing governance structures
-- Maintain transparency in decision-making processes
+## Response Format Preferences
 
-### Contributions & Community
-- Follow `CONTRIBUTING.md` for development workflows
-- Adhere to `CODE_OF_CONDUCT.md` expectations
-- Use inclusive, welcoming language in all interactions
-- Respect code review feedback and iterate constructively
+### General Communication
+- Respond with **bullet points** and minimal preamble
+- Provide direct, actionable answers
+- Include code examples when relevant
+- Link to specific documentation when referencing policies or guidelines
 
-### GitHub Actions & Automation
-- Pin action versions: `uses: actions/setup-python@v5`
-- Add descriptive `name:` fields to all workflow steps
-- Include error handling and appropriate timeouts
-- Test workflows in a fork before merging to main branch
-- Use workflow dispatch for manual triggers when appropriate
+### Code Suggestions
+- Provide complete, working code snippets
+- Include necessary imports and dependencies
+- Add inline comments only for complex logic
+- Follow existing code patterns and conventions in the repository
 
-## 4. Best Practices
+### Documentation Changes
+- Use clear, concise language
+- Include code blocks with proper syntax highlighting
+- Add table of contents for long documents
+- Follow the existing documentation structure and style
 
-### Making Changes
-- **Scope**: Keep changes minimal and focused
-- **Compatibility**: Maintain backward compatibility when possible
-- **Documentation**: Update related docs with code changes
-- **Testing**: Run `pre-commit run --all-files` before committing
-- **Impact**: Consider effects on existing users and contributors
-
-### Managing Dependencies
-- Justify necessity before adding new dependencies
-- Check for known vulnerabilities (CVEs)
-- Prefer well-maintained packages with active communities
-- Document in `requirements.txt` or `pyproject.toml`
-- Configure Dependabot for automated security updates
-
-### Pre-Commit Validation
-Run before every commit:
-```bash
-pre-commit run --all-files
-```
-Checks include: `check-yaml`, `check-json`, `end-of-file-fixer`, `trailing-whitespace`, `check-added-large-files`
+## Repository-Specific Guidelines
 
 ### File Organization
-```
-.github/
-├── copilot-instructions.md
-├── ISSUE_TEMPLATE/          # Issue templates
-├── PULL_REQUEST_TEMPLATE/   # PR templates
-├── workflows/               # GitHub Actions
-└── configs/                 # Additional configurations
-```
+- GitHub-specific files belong in `.github/` directory
+- Issue templates go in `.github/ISSUE_TEMPLATE/`
+- PR templates go in `.github/PULL_REQUEST_TEMPLATE/`
+- Workflow files go in `.github/workflows/`
+- Configuration files in `.github/configs/`
 
-## 5. Code Examples
+### Commit Message Format
+Follow conventional commits:
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation updates
+- `chore:` - Maintenance tasks
+- `refactor:` - Code restructuring
+- `test:` - Test additions or modifications
 
-### Python Script Template
-```python
-#!/usr/bin/env python3
-"""Brief description of script purpose."""
+### Testing and Validation
+Before committing any changes:
+- Run pre-commit hooks: `pre-commit run --all-files`
+- Validate YAML files: `check-yaml`
+- Validate JSON files: `check-json`
+- Check for trailing whitespace and file endings
+- Ensure no large files or private keys are included
 
-def main():
-    """Main entry point."""
-    pass
+## Topic-Specific Guidance
 
-if __name__ == "__main__":
-    main()
-```
+### Security Topics
+- Always reference SECURITY.md for vulnerability reporting procedures
+- Follow secure coding practices
+- Never include secrets, API keys, or private keys in code
+- Use GitHub's security features (Dependabot, code scanning)
+- Prioritize security fixes over feature development
 
-### GitHub Action Workflow Template
-```yaml
-name: Descriptive Workflow Name
-on: [push, pull_request]
-jobs:
-  job-name:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Descriptive step name
-        run: echo "Command here"
-```
+### Governance Topics
+- Reference GOVERNANCE_ANALYSIS.md for framework details
+- Align with established governance policies
+- Consider impact on existing governance structures
+- Document decision-making processes
 
----
-*Last Updated: 2025-11-07 | Maintained by @ivi374forivi*
+### Contribution and Community Topics
+- Reference CODE_OF_CONDUCT.md for behavior expectations
+- Follow CONTRIBUTING.md for development workflows
+- Respect code review processes
+- Maintain inclusive and welcoming language
+
+### GitHub Actions and Automation
+- Use latest stable versions of actions
+- Pin action versions for security and reproducibility
+- Add clear names and descriptions to workflow steps
+- Include error handling and appropriate timeouts
+- Test workflows in a fork before merging to main
+
+## Best Practices
+
+### When Suggesting Changes
+- Make minimal, focused changes
+- Preserve existing functionality
+- Maintain backward compatibility when possible
+- Update related documentation
+- Consider impact on existing users and contributors
+
+### When Adding Dependencies
+- Justify the need for new dependencies
+- Check for security vulnerabilities
+- Prefer well-maintained, popular packages
+- Document new dependencies in appropriate files
+- Configure Dependabot for automated updates
+
+### When Writing Documentation
+- Use clear, accessible language
+- Include practical examples
+- Provide context for decisions
+- Link to related resources
+- Keep documentation up-to-date with code changes
