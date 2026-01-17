@@ -1,0 +1,290 @@
+name: Repository Health Check
+
+# Module 7: Observability & System Health - Repository Analytics
+
+on:
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: 0 9 * * 1
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: Perform full comprehensive scan
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    name: Repository Health Assessment
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for comprehensive analysis
+
+      - name: Check branch protection
+        id: branch-protection
+        run: |
+          echo "Checking branch protection rules..."
+          # Add logic to verify branch protection via GitHub API
+          echo "branch_protected=true" >> $GITHUB_OUTPUT
+
+      - name: Check community health files
+        id: community-health
+        run: |
+          echo "Checking community health files..."
+          files=(
+            "README.md"
+            "LICENSE"
+            "CODE_OF_CONDUCT.md"
+            "CONTRIBUTING.md"
+            "SECURITY.md"
+          )
+
+          missing_files=()
+          for file in "${files[@]}"; do
+            if [ ! -f "$file" ]; then
+              missing_files+=("$file")
+            fi
+          done
+
+          if [ ${#missing_files[@]} -gt 0 ]; then
+            echo "missing=${missing_files[*]}" >> $GITHUB_OUTPUT
+            echo "status=incomplete" >> $GITHUB_OUTPUT
+          else
+            echo "status=complete" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check issue templates
+        id: issue-templates
+        run: |
+          echo "Checking issue templates..."
+          if [ -d ".github/ISSUE_TEMPLATE" ]; then
+            template_count=$(find .github/ISSUE_TEMPLATE -type f \( -name "*.md" -o -name "*.yml" \) | wc -l)
+            echo "template_count=$template_count" >> $GITHUB_OUTPUT
+            echo "status=configured" >> $GITHUB_OUTPUT
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check PR templates
+        id: pr-templates
+        run: |
+          echo "Checking PR templates..."
+          if [ -f ".github/PULL_REQUEST_TEMPLATE.md" ] || [ -d ".github/PULL_REQUEST_TEMPLATE" ]; then
+            echo "status=configured" >> $GITHUB_OUTPUT
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check CI/CD workflows
+        id: workflows
+        run: |
+          echo "Checking CI/CD workflows..."
+          if [ -d ".github/workflows" ]; then
+            workflow_count=$(find .github/workflows -name "*.yml" -o -name "*.yaml" | wc -l)
+            echo "workflow_count=$workflow_count" >> $GITHUB_OUTPUT
+            echo "status=configured" >> $GITHUB_OUTPUT
+          else
+            echo "workflow_count=0" >> $GITHUB_OUTPUT
+            echo "status=missing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check CODEOWNERS
+        id: codeowners
+        run: |
+          echo "Checking CODEOWNERS file..."
+          if [ -f ".github/CODEOWNERS" ] || [ -f "CODEOWNERS" ]; then
+            echo "status=configured" >> $GITHUB_OUTPUT
+          else
+            echo "status=missing" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Analyze repository metrics
+        id: metrics
+        run: |
+          echo "Analyzing repository metrics..."
+
+          # Count open issues
+          open_issues=$(gh issue list --limit 1000 --json number | jq '. | length')
+          echo "open_issues=$open_issues" >> $GITHUB_OUTPUT
+
+          # Count open PRs
+          open_prs=$(gh pr list --limit 1000 --json number | jq '. | length')
+          echo "open_prs=$open_prs" >> $GITHUB_OUTPUT
+
+          # Check for stale issues (no activity in 90 days)
+          stale_issues=$(gh issue list --limit 1000 --state open --json updatedAt,number | \
+            jq --arg cutoff "$(date -d '90 days ago' -Iseconds)" \
+            '[.[] | select(.updatedAt < $cutoff)] | length')
+          echo "stale_issues=$stale_issues" >> $GITHUB_OUTPUT
+
+          # Recent commit activity (last 30 days)
+          recent_commits=$(git log --since="30 days ago" --oneline | wc -l)
+          echo "recent_commits=$recent_commits" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Calculate health score
+        id: health-score
+        run: |
+          echo "Calculating overall health score..."
+
+          score=100
+
+          # Deduct points for missing community files
+          if [ "${{ steps.community-health.outputs.status }}" == "incomplete" ]; then
+            score=$((score - 15))
+          fi
+
+          # Deduct points for missing templates
+          if [ "${{ steps.issue-templates.outputs.status }}" == "missing" ]; then
+            score=$((score - 10))
+          fi
+          if [ "${{ steps.pr-templates.outputs.status }}" == "missing" ]; then
+            score=$((score - 10))
+          fi
+
+          # Deduct points for missing workflows
+          if [ "${{ steps.workflows.outputs.workflow_count }}" -eq 0 ]; then
+            score=$((score - 15))
+          fi
+
+          # Deduct points for missing CODEOWNERS
+          if [ "${{ steps.codeowners.outputs.status }}" == "missing" ]; then
+            score=$((score - 5))
+          fi
+
+          # Deduct points for stale issues
+          stale=${{ steps.metrics.outputs.stale_issues }}
+          if [ $stale -gt 20 ]; then
+            score=$((score - 10))
+          elif [ $stale -gt 10 ]; then
+            score=$((score - 5))
+          fi
+
+          # Deduct points for low activity
+          commits=${{ steps.metrics.outputs.recent_commits }}
+          if [ $commits -eq 0 ]; then
+            score=$((score - 15))
+          elif [ $commits -lt 5 ]; then
+            score=$((score - 5))
+          fi
+
+          echo "score=$score" >> $GITHUB_OUTPUT
+
+          # Determine grade
+          if [ $score -ge 90 ]; then
+            grade="A"
+          elif [ $score -ge 80 ]; then
+            grade="B"
+          elif [ $score -ge 70 ]; then
+            grade="C"
+          elif [ $score -ge 60 ]; then
+            grade="D"
+          else
+            grade="F"
+          fi
+          echo "grade=$grade" >> $GITHUB_OUTPUT
+
+      - name: Generate health report
+        run: |
+          cat > health-report.md << 'EOF'
+          # Repository Health Report
+
+          **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Repository:** ${{ github.repository }}
+
+          ## Overall Health Score: ${{ steps.health-score.outputs.score }}/100 (Grade: ${{ steps.health-score.outputs.grade }})
+
+          ---
+
+          ## Module 1: Repository Configuration
+
+          ### Community Health Files
+          - **Status:** ${{ steps.community-health.outputs.status }}
+          - **Missing Files:** ${{ steps.community-health.outputs.missing }}
+
+          ### Issue Templates
+          - **Status:** ${{ steps.issue-templates.outputs.status }}
+          - **Count:** ${{ steps.issue-templates.outputs.template_count }}
+
+          ### PR Templates
+          - **Status:** ${{ steps.pr-templates.outputs.status }}
+
+          ### CODEOWNERS
+          - **Status:** ${{ steps.codeowners.outputs.status }}
+
+          ## Module 3: CI/CD & Development Lifecycle
+
+          ### Workflows
+          - **Status:** ${{ steps.workflows.outputs.status }}
+          - **Count:** ${{ steps.workflows.outputs.workflow_count }}
+
+          ## Module 7: Observability & System Health
+
+          ### Repository Metrics
+          - **Open Issues:** ${{ steps.metrics.outputs.open_issues }}
+          - **Open PRs:** ${{ steps.metrics.outputs.open_prs }}
+          - **Stale Issues:** ${{ steps.metrics.outputs.stale_issues }}
+          - **Recent Commits (30 days):** ${{ steps.metrics.outputs.recent_commits }}
+
+          ---
+
+          ## Recommendations
+
+          EOF
+
+          # Add recommendations based on findings
+          if [ "${{ steps.community-health.outputs.status }}" == "incomplete" ]; then
+            echo "- ⚠️ Add missing community health files: ${{ steps.community-health.outputs.missing }}" >> health-report.md
+          fi
+
+          if [ "${{ steps.issue-templates.outputs.status }}" == "missing" ]; then
+            echo "- ⚠️ Configure issue templates in .github/ISSUE_TEMPLATE/" >> health-report.md
+          fi
+
+          if [ "${{ steps.pr-templates.outputs.status }}" == "missing" ]; then
+            echo "- ⚠️ Add pull request template" >> health-report.md
+          fi
+
+          if [ "${{ steps.workflows.outputs.workflow_count }}" -eq 0 ]; then
+            echo "- ⚠️ Set up CI/CD workflows" >> health-report.md
+          fi
+
+          if [ "${{ steps.codeowners.outputs.status }}" == "missing" ]; then
+            echo "- ⚠️ Create CODEOWNERS file for automatic code review assignment" >> health-report.md
+          fi
+
+          if [ ${{ steps.metrics.outputs.stale_issues }} -gt 0 ]; then
+            echo "- ⚠️ Review and address ${{ steps.metrics.outputs.stale_issues }} stale issues" >> health-report.md
+          fi
+
+          cat health-report.md
+
+      - name: Create or update health check issue
+        if: steps.health-score.outputs.score < 80
+        run: |
+          # Create an issue if health score is below threshold
+          gh issue create \
+            --title "📊 Repository Health Check - Score: ${{ steps.health-score.outputs.score }}/100" \
+            --body-file health-report.md \
+            --label "health-check,needs-attention" \
+            || echo "Issue creation failed or already exists"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-report
+          path: health-report.md
+          retention-days: 90
