@@ -4,16 +4,42 @@ set -e
 # System Governance Framework - Installation Script
 # Usage: bash <(curl -fsSL https://raw.githubusercontent.com/4-b100m/system-governance-framework/main/scripts/install-framework.sh)
 
-VERSION="${1:-v3.0.0}"
-PRESET="${2:-standard}"
-REPO_URL="https://raw.githubusercontent.com/4-b100m/system-governance-framework"
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Help function
+show_help() {
+    echo -e "${BLUE}System Governance Framework - Installer${NC}"
+    echo ""
+    echo -e "${BLUE}Usage:${NC}"
+    echo -e "  ${GREEN}bash install-framework.sh${NC} [VERSION] [PRESET]"
+    echo ""
+    echo -e "${BLUE}Arguments:${NC}"
+    echo -e "  ${YELLOW}VERSION${NC}   Version tag to install (default: v3.0.0)"
+    echo -e "  ${YELLOW}PRESET${NC}    Configuration preset (default: standard)"
+    echo ""
+    echo -e "${BLUE}Flags:${NC}"
+    echo -e "  ${YELLOW}-h, --help${NC}  Show this help message"
+    echo ""
+    echo -e "${BLUE}Examples:${NC}"
+    echo -e "  ${GREEN}bash install-framework.sh${NC}"
+    echo -e "  ${GREEN}bash install-framework.sh${NC} v2.0.0"
+    echo -e "  ${GREEN}bash install-framework.sh${NC} v3.0.0 enterprise"
+}
+
+# Check for help flag
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    show_help
+    exit 0
+fi
+
+VERSION="${1:-v3.0.0}"
+PRESET="${2:-standard}"
+REPO_URL="https://raw.githubusercontent.com/4-b100m/system-governance-framework"
 
 echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════════════════════════╗"
