@@ -212,9 +212,12 @@ else
 
     # Update configuration with detected languages
     if command -v yq &> /dev/null; then
-        for lang in "${LANGUAGES[@]}"; do
-            yq eval ".project.languages += [\"$lang\"]" -i .github/governance.yml 2>/dev/null || true
-        done
+        # Optimization: Batch update to reduce yq process overhead
+        # Construct JSON array from bash array: ["lang1","lang2"]
+        LANG_JSON=$(printf '"%s",' "${LANGUAGES[@]}")
+        LANG_JSON="[${LANG_JSON%,}]"
+
+        yq eval ".project.languages += $LANG_JSON" -i .github/governance.yml 2>/dev/null || true
     fi
 fi
 
