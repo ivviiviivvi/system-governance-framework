@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "observed_at": "2026-09-07",
+  "evidence_classes": [
+    "local_execution",
+    "organization_actions",
+    "personal_relay_execution",
+    "external_review",
+    "static_inspection",
+    "reported_not_reproduced"
+  ],
+  "workstreams": [
+    {
+      "id": "GOV-AUTH-001",
+      "repository": "organvm-iv-taxis/system-governance-framework",
+      "starting_sha": "382558dd304d1f0d64e65104f4291ffc837d2f52",
+      "state": "human_action_blocked",
+      "authority_required": "organization_owner",
+      "finding": "No repository ruleset was visible; branch-protection detail was inaccessible to the integration; code-owner reviewer eligibility was unresolved.",
+      "verification": "Attempt an authority-changing PR and prove it cannot merge after agent review alone.",
+      "rollback": "Disable the new ruleset only through the documented human break-glass path."
+    },
+    {
+      "id": "RELAY-TRUST-004",
+      "repository": "4444J99/organvm-ci-relay",
+      "pull_request": 4,
+      "starting_sha": "570b75688843aac7c021897590c3fe3795b2cdf9",
+      "state": "locally_verified_activation_hold",
+      "authority_required": "human_bootstrap_review",
+      "finding": "The midword-hash repair is present and locally verified; hosted bootstrap and adversarial canaries remain required before activation.",
+      "verification": "Exact-head policy verifier, registry suite, policy suite, syntax and diff hygiene, followed by hosted canaries.",
+      "rollback": "Keep the relay disabled and revert only the implicated exact-head commit through the PR rail."
+    },
+    {
+      "id": "LIMEN-GOV-2552",
+      "repository": "4444J99/limen",
+      "pull_request": 2552,
+      "starting_sha": "ad1dc1f8ceb034265cc2c103a628ce2ae8eb5f5a",
+      "state": "locally_verified",
+      "authority_required": "existing_pull_request_merge_gate",
+      "finding": "The reserve-before-run boundary passes its implicated tests and mypy against the exact head.",
+      "verification": "324 implicated pytest cases and mypy over 174 source files.",
+      "rollback": "Revert the merge through a new reviewed pull request if provider admission regresses."
+    }
+  ]
+}
