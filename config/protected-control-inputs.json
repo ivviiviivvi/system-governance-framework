@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "repository": "organvm-iv-taxis/system-governance-framework",
+  "default_branch": "main",
+  "approval_policy": {
+    "human_code_owner_approvals": 1,
+    "dismiss_stale_approvals": true,
+    "require_last_push_approval": true,
+    "require_conversation_resolution": true,
+    "copilot_approvals_satisfy_merge": false,
+    "block_force_pushes": true,
+    "block_deletions": true
+  },
+  "paths": [
+    ".github/CODEOWNERS",
+    ".github/workflows/**",
+    ".github/actions/**",
+    "AGENTS.md",
+    "**/AGENTS.md",
+    "SKILL.md",
+    "**/SKILL.md",
+    ".github/copilot-instructions.md",
+    ".github/instructions/**",
+    "config/**",
+    "docs/AUTHORITY_BOUNDARY.md",
+    "src/receipt_auditor.py",
+    "tests/fixtures/receipts/**"
+  ]
+}
+
