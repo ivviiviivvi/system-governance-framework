@@ -154,9 +154,7 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
                 required = {"type", "source", "observed_at", "result"}
                 missing_evidence = sorted(required - item.keys())
                 if missing_evidence:
-                    errors.append(
-                        f"{item_prefix} missing fields: {', '.join(missing_evidence)}"
-                    )
+                    errors.append(f"{item_prefix} missing fields: {', '.join(missing_evidence)}")
                     continue
                 if item["type"] not in ALLOWED_EVIDENCE_TYPES:
                     errors.append(f"{item_prefix}.type is invalid: {item['type']}")
@@ -168,13 +166,14 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
                     if not isinstance(item[field], str) or not item[field]:
                         errors.append(f"{item_prefix}.{field} must be a non-empty string")
 
-        if status == "verified" and not evidence_types.intersection(
-            VERIFIABLE_EVIDENCE_TYPES
-        ):
+        if status == "verified" and not evidence_types.intersection(VERIFIABLE_EVIDENCE_TYPES):
             errors.append(f"{prefix} is verified without verifiable evidence")
-        if verification_mode == "admin_manual" and status == "verified":
-            if "admin_export" not in evidence_types:
-                errors.append(f"{prefix} needs admin_export evidence before verified status")
+        if (
+            verification_mode == "admin_manual"
+            and status == "verified"
+            and "admin_export" not in evidence_types
+        ):
+            errors.append(f"{prefix} needs admin_export evidence before verified status")
 
         unresolved = status not in {"verified", "not_applicable"}
         if unresolved and (

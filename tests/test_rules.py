@@ -15,36 +15,36 @@ from src.rules import (
 
 class TestReadmeRule:
     def test_passes_when_readme_exists(self):
-        passed, msg = check_readme_exists({"has_readme": True})
+        passed, _ = check_readme_exists({"has_readme": True})
         assert passed is True
 
     def test_fails_when_readme_missing(self):
-        passed, msg = check_readme_exists({"has_readme": False})
+        passed, _ = check_readme_exists({"has_readme": False})
         assert passed is False
 
     def test_fails_when_key_absent(self):
-        passed, msg = check_readme_exists({})
+        passed, _ = check_readme_exists({})
         assert passed is False
 
 
 class TestLicenseRule:
     def test_passes_when_license_exists(self):
-        passed, msg = check_license_exists({"has_license": True})
+        passed, _ = check_license_exists({"has_license": True})
         assert passed is True
 
     def test_fails_when_license_missing(self):
-        passed, msg = check_license_exists({})
+        passed, _ = check_license_exists({})
         assert passed is False
 
 
 class TestNoBackEdges:
     def test_no_dependencies(self):
-        passed, msg = check_no_back_edges({"organ": "I", "dependencies": []})
+        passed, _ = check_no_back_edges({"organ": "I", "dependencies": []})
         assert passed is True
 
     def test_valid_forward_dependency(self):
         state = {"organ": "I", "dependencies": [{"organ": "I"}]}
-        passed, msg = check_no_back_edges(state)
+        passed, _ = check_no_back_edges(state)
         assert passed is True
 
     def test_detects_back_edge(self):
@@ -55,7 +55,7 @@ class TestNoBackEdges:
 
     def test_allows_same_organ_dependency(self):
         state = {"organ": "II", "dependencies": [{"organ": "II"}]}
-        passed, msg = check_no_back_edges(state)
+        passed, _ = check_no_back_edges(state)
         assert passed is True
 
     def test_organ_viii_in_order(self):
@@ -67,7 +67,7 @@ class TestNoBackEdges:
 
     def test_organ_viii_forward_is_valid(self):
         state = {"organ": "VIII", "dependencies": [{"organ": "I"}]}
-        passed, msg = check_no_back_edges(state)
+        passed, _ = check_no_back_edges(state)
         assert passed is True
 
 
@@ -81,7 +81,7 @@ class TestDocumentationStatus:
         assert passed is True
 
     def test_invalid_status(self):
-        passed, msg = check_documentation_status({"documentation_status": "BROKEN"})
+        passed, _ = check_documentation_status({"documentation_status": "BROKEN"})
         assert passed is False
 
 
@@ -123,15 +123,23 @@ class TestSecurityForPreset:
         assert passed is True
 
     def test_enterprise_requires_codeql(self):
-        passed, _ = check_security_for_preset({
-            "preset": "enterprise", "security_enabled": True, "codeql_enabled": False,
-        })
+        passed, _ = check_security_for_preset(
+            {
+                "preset": "enterprise",
+                "security_enabled": True,
+                "codeql_enabled": False,
+            }
+        )
         assert passed is False
 
     def test_enterprise_passes_with_codeql(self):
-        passed, _ = check_security_for_preset({
-            "preset": "enterprise", "security_enabled": True, "codeql_enabled": True,
-        })
+        passed, _ = check_security_for_preset(
+            {
+                "preset": "enterprise",
+                "security_enabled": True,
+                "codeql_enabled": True,
+            }
+        )
         assert passed is True
 
 
@@ -141,15 +149,21 @@ class TestComplianceForEnterprise:
         assert passed is True
 
     def test_enterprise_requires_compliance(self):
-        passed, _ = check_compliance_for_enterprise({
-            "preset": "enterprise", "compliance_enabled": False,
-        })
+        passed, _ = check_compliance_for_enterprise(
+            {
+                "preset": "enterprise",
+                "compliance_enabled": False,
+            }
+        )
         assert passed is False
 
     def test_enterprise_passes_with_compliance(self):
-        passed, _ = check_compliance_for_enterprise({
-            "preset": "enterprise", "compliance_enabled": True,
-        })
+        passed, _ = check_compliance_for_enterprise(
+            {
+                "preset": "enterprise",
+                "compliance_enabled": True,
+            }
+        )
         assert passed is True
 
 

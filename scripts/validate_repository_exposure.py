@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate the repository exposure disposition ledger."""
 
 from __future__ import annotations
@@ -33,9 +32,7 @@ def validate(inventory: dict) -> list[str]:
             errors.append(f"{disposition} repositories must be sorted")
         for repository in repositories:
             if repository in seen:
-                errors.append(
-                    f"{repository} appears in both {seen[repository]} and {disposition}"
-                )
+                errors.append(f"{repository} appears in both {seen[repository]} and {disposition}")
             seen[repository] = disposition
 
     if len(seen) != coverage.get("private"):
@@ -43,9 +40,7 @@ def validate(inventory: dict) -> list[str]:
             f"disposition count {len(seen)} does not match private coverage "
             f"{coverage.get('private')}"
         )
-    if coverage.get("public", 0) + coverage.get("private", 0) != coverage.get(
-        "repositories"
-    ):
+    if coverage.get("public", 0) + coverage.get("private", 0) != coverage.get("repositories"):
         errors.append("public + private coverage must equal repositories")
 
     reference = inventory.get("reference_split", {})
@@ -94,4 +89,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

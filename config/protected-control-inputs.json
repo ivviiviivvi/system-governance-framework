@@ -2,6 +2,8 @@
   "schema_version": "1.0.0",
   "repository": "organvm-iv-taxis/system-governance-framework",
   "default_branch": "main",
+  "enforcement_status": "proposal_not_applied",
+  "semantics": "Coverage catalogue only; actual repository-wide ruleset and reviewer eligibility require admin verification.",
   "approval_policy": {
     "human_code_owner_approvals": 1,
     "dismiss_stale_approvals": true,
@@ -19,12 +21,25 @@
     "**/AGENTS.md",
     "SKILL.md",
     "**/SKILL.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".claude/**",
+    ".codex/**",
+    "skills/**",
+    "prompts/**",
+    "agents/**",
+    "deployments/**",
     ".github/copilot-instructions.md",
     ".github/instructions/**",
     "config/**",
+    "schemas/**",
+    "scripts/**",
+    "src/**",
+    "tests/**",
+    "package.json",
+    "pyproject.toml",
     "docs/AUTHORITY_BOUNDARY.md",
     "src/receipt_auditor.py",
     "tests/fixtures/receipts/**"
   ]
 }
-

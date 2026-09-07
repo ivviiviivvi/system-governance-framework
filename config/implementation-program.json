@@ -1,0 +1,288 @@
+{
+  "schema_version": "organvm-implementation-program/v1",
+  "as_of": "2026-09-07",
+  "program_complete": false,
+  "scope": {
+    "canonical_repositories": 3,
+    "exposure_candidates": 23,
+    "historical_estate_denominators": [
+      314,
+      323
+    ],
+    "current_estate_census": false
+  },
+  "revision_evidence": {
+    "governance": {
+      "starting_pr_head": "94318b03c4214a163322da29748ae0433c9ff2d6",
+      "default_branch_sha": "382558dd304d1f0d64e65104f4291ffc837d2f52",
+      "observed_branch_protected": false,
+      "observed_inherited_and_repository_rulesets": 0,
+      "candidate_identity": "Resolve from the immutable commit containing this file and its published PR71 receipt; no self-referential commit hash is embedded."
+    },
+    "relay": {
+      "starting_pr4_head": "31cdbd4a33bc6cdbb22f8f5421affc4653db9f11",
+      "concurrently_merged_pr4_head": "bce5b5afbdb390f55fe6c3a48c37e197763ecc49",
+      "integrated_main_sha": "957e95888f01fd73e52638c7faa7cd8defa7a397",
+      "published_pr6_head": "ae75c804c67880485cb163311e3b58ee837e9b7a",
+      "locally_verified_tree": "2325d018a5a9c791286d679c56a79e16b09389c7",
+      "evidence_origin": "local-execution; hosted policy failure separately recorded in PR6"
+    },
+    "limen": {
+      "starting_pr_head": "92662957d861bcb0b301ee7e465ba403862ee943",
+      "published_pr_head": "55266a96db1b9d10f4564037b778c403ca6e38f4",
+      "candidate_tree": "634c3c76fc4c27dd45877fda45b9a261e42ed392",
+      "candidate_evidence_origin": "local-narrow-diagnostics-and-static-checks",
+      "full_post_change_verification": "host-admission-blocked; not bypassed"
+    }
+  },
+  "owners": {
+    "governance#71": "https://github.com/organvm-iv-taxis/system-governance-framework/pull/71",
+    "governance#64": "https://github.com/organvm-iv-taxis/system-governance-framework/issues/64",
+    "governance#65": "https://github.com/organvm-iv-taxis/system-governance-framework/issues/65",
+    "governance#67": "https://github.com/organvm-iv-taxis/system-governance-framework/issues/67",
+    "relay#4": "https://github.com/4444J99/organvm-ci-relay/pull/4",
+    "relay#6": "https://github.com/4444J99/organvm-ci-relay/pull/6",
+    "limen#2552": "https://github.com/4444J99/limen/pull/2552"
+  },
+  "gates": [
+    {
+      "id": "0",
+      "title": "Exact-state and coverage baseline",
+      "state": "verified",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Current metadata inspected for three canonical PRs and all 23 exposure candidates; this is not a new whole-estate census."
+    },
+    {
+      "id": "A1",
+      "title": "Enforced governance and eligible human authorization",
+      "state": "blocked",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Installed repository integration cannot administer branch/Copilot policy; eligible reviewer and effective enforcement not established."
+    },
+    {
+      "id": "A2",
+      "title": "Revision-bound authorization semantics",
+      "state": "implemented",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Authority policy and strict audit context distinguish owner action-time grant, independent review and agent evidence; no live principal-authentication adapter is claimed."
+    },
+    {
+      "id": "B1",
+      "title": "Relay parser/trust-boundary repair",
+      "state": "implemented",
+      "owner": "relay#6",
+      "depends_on": [],
+      "disposition": "Original hash case covered; diagnostic tokenizer is not a general shell parser. Exact executable bytes and full write-job seals enforce admission."
+    },
+    {
+      "id": "B2",
+      "title": "Relay current-tree receipts and evidence",
+      "state": "implemented",
+      "owner": "relay#6",
+      "depends_on": [
+        "B1"
+      ],
+      "disposition": "v3 receipt validates direct-workflow identity, uses unknown for unobserved execution, and excludes later publication from execution aggregate."
+    },
+    {
+      "id": "B3",
+      "title": "Relay bootstrap and hosted adversarial canaries",
+      "state": "blocked",
+      "owner": "relay#6",
+      "depends_on": [
+        "A1",
+        "B2"
+      ],
+      "disposition": "PR4 merged concurrently at bce5b5a (merge fc21ba4); hosted policy succeeded but execution failed on missing ffmpeg. PR5 supplied media-tool repair at 957e958; receipt-v3 changes continue in draft PR6. Adversarial enforcement and activation proof remain open."
+    },
+    {
+      "id": "C1",
+      "title": "Governor reserve/run/result convergence",
+      "state": "partial",
+      "owner": "limen#2552",
+      "depends_on": [],
+      "disposition": "Baseline passed hosted CI and local focused verification. Repairs cover prelaunch accounting, exact result CAS, durable ticket custody, scoped conflicts and unknown provider exceptions. Full post-change heavy verification is blocked by host lease admission."
+    },
+    {
+      "id": "C2",
+      "title": "Data-retention/tool/destination eligibility before ranking",
+      "state": "partial",
+      "owner": "limen#2552",
+      "depends_on": [
+        "C1"
+      ],
+      "disposition": "Strict eligibility predicate and pre-ranking filter implemented in the existing selector; explicit policy uses contract v5, legacy policy-free v4 hash unchanged. Policy-bearing tasks fail closed in dispatch and Python/Worker claims until a separately trusted live attestation adapter exists; this is not a verified retention guarantee for legacy tasks."
+    },
+    {
+      "id": "C3",
+      "title": "Verified result settlement",
+      "state": "partial",
+      "owner": "limen#2552",
+      "depends_on": [
+        "C1"
+      ],
+      "disposition": "Exact reservation/contract fencing now rejects forged handoff/refund markers; unknown provider attempts retain debit and cannot claim success. Independent production verification and full post-change owning gates remain unresolved."
+    },
+    {
+      "id": "D1",
+      "title": "Defining workflow and publication provenance",
+      "state": "implemented",
+      "owner": "relay#6",
+      "depends_on": [
+        "B1"
+      ],
+      "disposition": "Caller and definition are separate; this direct workflow requires equality, reusable workflows do not universally require equal identities."
+    },
+    {
+      "id": "D2",
+      "title": "Immutable actions and narrow permissions",
+      "state": "partial",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Governance external uses pinned; trusted composite parsing and defining/caller source separation repaired; unused release package-write removed. Scoped hardening is not an estate-wide action or runner-lifecycle audit, and auxiliary scanners remain separately unverified."
+    },
+    {
+      "id": "E1",
+      "title": "Deterministic defect fixtures",
+      "state": "implemented",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Strict fixture context independently records authorization, reservations, results and expected workflows."
+    },
+    {
+      "id": "E2",
+      "title": "Read-only receipt auditor",
+      "state": "implemented",
+      "owner": "governance#71",
+      "depends_on": [
+        "E1"
+      ],
+      "disposition": "No network, repository writes, provider access or live authority. Caller must authenticate trusted observations outside candidate receipts."
+    },
+    {
+      "id": "E3",
+      "title": "Live eligible model comparison",
+      "state": "blocked",
+      "owner": "governance#71",
+      "depends_on": [
+        "A1",
+        "C2",
+        "E2"
+      ],
+      "disposition": "No paid model calls; current provider eligibility, explicit budget and separately authorized deployment not established."
+    },
+    {
+      "id": "F1",
+      "title": "Current exposure classification reconciliation",
+      "state": "partial",
+      "owner": "governance#65",
+      "depends_on": [],
+      "disposition": "23/23 candidate metadata reads; all remain private. Existing inventory 323 and older Limen 314 are different historical denominators."
+    },
+    {
+      "id": "F2",
+      "title": "Companion-repository extractions",
+      "state": "blocked",
+      "owner": "governance#64",
+      "depends_on": [
+        "F1"
+      ],
+      "disposition": "Existing three readiness PRs already merged. Candidate classification conflicts and exact release/source approval remain unresolved; no automatic visibility changes."
+    },
+    {
+      "id": "F3",
+      "title": "Private/public access and release proof",
+      "state": "blocked",
+      "owner": "governance#67",
+      "depends_on": [
+        "F1"
+      ],
+      "disposition": "Historical history-audit receipt retained; platform scan, actual access-boundary canaries and release authorization not rerun/proven."
+    },
+    {
+      "id": "G1",
+      "title": "Copilot entitlement and effective exclusions",
+      "state": "blocked",
+      "owner": "governance#71",
+      "depends_on": [
+        "F1"
+      ],
+      "disposition": "16 existing platform controls remain unresolved; repo API visibility does not prove seat entitlement or effective settings."
+    },
+    {
+      "id": "G2",
+      "title": "Client/mode synthetic exclusion canaries",
+      "state": "blocked",
+      "owner": "governance#71",
+      "depends_on": [
+        "G1"
+      ],
+      "disposition": "Managed seats, actual clients/modes and observable context-selection evidence unavailable; failure to repeat a marker is not absence proof."
+    },
+    {
+      "id": "G3",
+      "title": "Compensating review coverage",
+      "state": "implemented",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Control-path catalogue and policy require review/validators for excluded files; actual reviewer eligibility remains A1."
+    },
+    {
+      "id": "H1",
+      "title": "Provider-neutral manifest integration",
+      "state": "superseded",
+      "owner": "limen#2552",
+      "depends_on": [
+        "C2"
+      ],
+      "disposition": "Reuse Limen canonical execution contract and typed authority envelope: historical policy-free v4 remains stable; explicit eligibility uses v5. Do not create competing scheduler/deployment authority."
+    },
+    {
+      "id": "H2",
+      "title": "Fail-closed ant apply deployment wrapper",
+      "state": "blocked",
+      "owner": "governance#71",
+      "depends_on": [
+        "A1",
+        "B3",
+        "C2",
+        "E3"
+      ],
+      "disposition": "Official apply docs verified; live wrapper not implemented/activated. Require all-writer lease, exact plan authorization, private durable partial state, WIF, no implicit force/prune."
+    },
+    {
+      "id": "H3",
+      "title": "Private provider state custody",
+      "state": "blocked",
+      "owner": "governance#64",
+      "depends_on": [
+        "F2",
+        "H2"
+      ],
+      "disposition": "No live provider lockfile created. Never copy actual claude-lock.json to public examples; lock state alone is not a deployment success receipt."
+    },
+    {
+      "id": "I1",
+      "title": "npm active-package and authority inventory",
+      "state": "unresolved",
+      "owner": "governance#71",
+      "depends_on": [],
+      "disposition": "Governance manifest candidate returned HTTP404 from the public npm registry during this pass; four Limen manifests private; no npm publish jobs in 30 inspected workflows. This scoped negative result does not inventory private packages, owner tokens or estate-wide authority; migration remains conditional."
+    },
+    {
+      "id": "I2",
+      "title": "OIDC staging and obsolete authority retirement",
+      "state": "blocked",
+      "owner": "governance#71",
+      "depends_on": [
+        "I1",
+        "F3"
+      ],
+      "disposition": "No npm config/token modification or publication. Package-owner inventory, scan/human-approval canary and explicit revocation required; additive trust does not retire old authority."
+    }
+  ],
+  "verification_boundary": "This is a coverage/disposition ledger, never an authority token. Implemented is not merged, hosted-verified, activated or production-authorized. Required unresolved atoms cannot be silently omitted."
+}
