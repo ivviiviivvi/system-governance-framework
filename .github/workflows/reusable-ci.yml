@@ -39,6 +39,7 @@ jobs:
       has-java: ${{ steps.detect-languages.outputs.has-java }}
       ci-enabled: ${{ steps.check-features.outputs.ci-enabled }}
       coverage-enabled: ${{ steps.check-features.outputs.coverage-enabled }}
+      pre-commit-enabled: ${{ steps.check-features.outputs.pre-commit-enabled }}
       defining-workflow-sha: ${{ steps.workflow-identity.outputs.sha }}
       defining-workflow-repository: ${{ steps.workflow-identity.outputs.repository }}
 
@@ -110,7 +111,7 @@ jobs:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
     needs: setup
-    if: fromJSON(needs.setup.outputs.config).features.quality.enabled != false
+    if: needs.setup.outputs.pre-commit-enabled == 'true'
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

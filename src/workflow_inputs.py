@@ -194,9 +194,16 @@ def feature_outputs(config, coverage="auto"):
     if coverage not in {"auto", "true", "false"}:
         raise InputError("Coverage override must be auto, true, or false")
     ci = config.get("features", {}).get("ci", {})
+    quality = config.get("features", {}).get("quality", {})
     enabled = ci.get("enabled", True)
     enabled_coverage = ci.get("test-coverage", True) if coverage == "auto" else coverage == "true"
-    return {"ci-enabled": str(enabled).lower(), "coverage-enabled": str(enabled_coverage).lower()}
+    return {
+        "ci-enabled": str(enabled).lower(),
+        "coverage-enabled": str(enabled_coverage).lower(),
+        "pre-commit-enabled": str(
+            quality.get("enabled", True) and quality.get("pre-commit", False)
+        ).lower(),
+    }
 
 
 def emit_outputs(outputs, destination):

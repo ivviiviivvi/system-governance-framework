@@ -384,6 +384,12 @@ def audit_receipt(receipt: Any, *, context: TrustedAuditContext | None = None) -
                 "stages.verification.principal",
                 "different labels share execution authority",
             )
+        if proposer and verifier.authority_domain == proposer.authority_domain:
+            add(
+                "MISSING_INDEPENDENT_VERIFIER",
+                "stages.verification.principal",
+                "different labels share proposal authority",
+            )
     if publisher and scope not in publisher.publication_scopes:
         add(
             "INELIGIBLE_PUBLISHER",

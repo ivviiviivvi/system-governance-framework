@@ -97,6 +97,16 @@ def test_reusable_conditions_do_not_use_forbidden_secrets_context():
         assert "secrets." not in item.get("if", "")
 
 
+def test_pre_commit_job_honors_the_validated_feature_output():
+    workflow = load_yaml(ROOT / ".github/workflows/reusable-ci.yml")
+    assert workflow["jobs"]["setup"]["outputs"]["pre-commit-enabled"] == (
+        "${{ steps.check-features.outputs.pre-commit-enabled }}"
+    )
+    assert workflow["jobs"]["pre-commit"]["if"] == (
+        "needs.setup.outputs.pre-commit-enabled == 'true'"
+    )
+
+
 @pytest.mark.parametrize("job_id", ["test-python", "test-javascript", "test-go"])
 def test_coverage_token_is_not_exposed_to_caller_tests(job_id):
     workflow = load_yaml(ROOT / ".github/workflows/reusable-ci.yml")

@@ -130,7 +130,26 @@ def test_false_config_booleans_are_preserved(tmp_path, coverage, expected):
     assert feature_outputs(config, coverage) == {
         "ci-enabled": "false",
         "coverage-enabled": expected,
+        "pre-commit-enabled": "true",
     }
+
+
+@pytest.mark.parametrize("preset, expected", [("minimal", "false"), ("standard", "true")])
+def test_pre_commit_feature_output_honors_preset(tmp_path, preset, expected):
+    (tmp_path / "config.yml").write_text(
+        f"framework: {{version: '3.0.0', preset: {preset}}}\n",
+    )
+    config = load_config(tmp_path, "config.yml")
+    assert feature_outputs(config)["pre-commit-enabled"] == expected
+
+
+def test_disabled_quality_section_suppresses_pre_commit(tmp_path):
+    (tmp_path / "config.yml").write_text(
+        "framework: {version: '3.0.0'}\n"
+        "features: {quality: {enabled: false, pre-commit: true}}\n",
+    )
+    config = load_config(tmp_path, "config.yml")
+    assert feature_outputs(config)["pre-commit-enabled"] == "false"
 
 
 @pytest.mark.parametrize(

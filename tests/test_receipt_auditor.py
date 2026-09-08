@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from receipt_auditor import TrustedAuditContext, audit_file, audit_receipt, canonical_digest
+from src.receipt_auditor import TrustedAuditContext, audit_file, audit_receipt, canonical_digest
 
 FIXTURES = Path(__file__).parent / "fixtures" / "receipts"
 SCOPE = {"repository": "synthetic/fixture", "environment": "test", "operation": "read-audit"}
@@ -365,6 +365,14 @@ def test_proposer_identity_cannot_be_relabelled_to_fake_independence():
     receipt["stages"]["proposal"]["principal"] = "publisher-1"
     result = audit_receipt(receipt, context=context_from_synthetic(context))
     assert "PROPOSAL_EVIDENCE_MISMATCH" in codes(result)
+
+
+def test_proposer_cannot_verify_through_a_second_label_in_the_same_authority_domain():
+    receipt, context = synthetic_case()
+    context["principals"]["verifier-1"]["authority_domain"] = "proposal"
+    assert "MISSING_INDEPENDENT_VERIFIER" in codes(
+        audit_receipt(receipt, context=context_from_synthetic(context))
+    )
 
 
 def test_mutated_context_bypassing_frozen_containers_is_revalidated():
