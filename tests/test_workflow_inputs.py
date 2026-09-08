@@ -248,6 +248,7 @@ def test_reusable_actions_come_from_defining_revision_not_caller():
 
 def test_defining_identity_uses_supported_authenticated_run_metadata(tmp_path, monkeypatch):
     import io
+    import runpy
     import urllib.request
 
     workflow = yaml.load(
@@ -260,6 +261,8 @@ def test_defining_identity_uses_supported_authenticated_run_metadata(tmp_path, m
     assert probe["env"]["GOVERNANCE_READ_TOKEN"] == "${{ github.token }}"
     assert "job.workflow_" not in json.dumps(workflow)
     script = probe["run"].split("<<'PYTHON'\n", 1)[1].rsplit("\nPYTHON", 1)[0]
+    bootstrap = tmp_path / "identity_bootstrap.py"
+    bootstrap.write_text(script)
     trusted = "organvm-iv-taxis/system-governance-framework"
     reference = {"path": trusted + "/.github/workflows/reusable-ci.yml@main", "sha": "b" * 40}
     baseline = {
@@ -296,7 +299,7 @@ def test_defining_identity_uses_supported_authenticated_run_metadata(tmp_path, m
 
     opener = Opener()
     monkeypatch.setattr(urllib.request, "build_opener", lambda *args: opener)
-    exec(compile(script, "identity-bootstrap", "exec"), {})
+    runpy.run_path(str(bootstrap))
     assert (tmp_path / "identity").read_text() == f"repository={trusted}\nsha={'b' * 40}\n"
 
     # PR run metadata identifies the candidate, while github.sha identifies
@@ -308,11 +311,11 @@ def test_defining_identity_uses_supported_authenticated_run_metadata(tmp_path, m
         monkeypatch.setenv("GOVERNANCE_PR_HEAD_SHA", "a" * 40)
         opener.raw = json.dumps(dict(baseline, event=event)).encode()
         (tmp_path / "identity").unlink()
-        exec(compile(script, "identity-bootstrap", "exec"), {})
+        runpy.run_path(str(bootstrap))
         assert (tmp_path / "identity").read_text().endswith(f"sha={'b' * 40}\n")
         opener.raw = json.dumps(dict(baseline, event=event, head_sha="c" * 40)).encode()
         with pytest.raises(SystemExit, match="refusing caller code"):
-            exec(compile(script, "identity-bootstrap", "exec"), {})
+            runpy.run_path(str(bootstrap))
     monkeypatch.setenv("GOVERNANCE_CALLER_EVENT", "push")
     monkeypatch.setenv("GOVERNANCE_CALLER_SHA", "a" * 40)
     monkeypatch.setenv("GOVERNANCE_PR_HEAD_SHA", "")
@@ -333,16 +336,16 @@ def test_defining_identity_uses_supported_authenticated_run_metadata(tmp_path, m
         (tmp_path / "identity").unlink(missing_ok=True)
         opener.raw = json.dumps(document).encode()
         with pytest.raises(SystemExit, match="refusing caller code"):
-            exec(compile(script, "identity-bootstrap", "exec"), {})
+            runpy.run_path(str(bootstrap))
         assert not (tmp_path / "identity").exists()
     for raw in (b'{"id":17,"id":17}', b"not-json", b"x" * (1024 * 1024 + 1)):
         opener.raw = raw
         with pytest.raises(SystemExit, match="refusing caller code"):
-            exec(compile(script, "identity-bootstrap", "exec"), {})
+            runpy.run_path(str(bootstrap))
 
     def unavailable(*args):
         raise OSError("synthetic API failure")
 
     monkeypatch.setattr(urllib.request, "build_opener", unavailable)
     with pytest.raises(SystemExit, match="refusing caller code"):
-        exec(compile(script, "identity-bootstrap", "exec"), {})
+        runpy.run_path(str(bootstrap))
