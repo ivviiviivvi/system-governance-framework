@@ -6,8 +6,8 @@ a (passed: bool, message: str) tuple.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass(frozen=True)
@@ -44,9 +44,12 @@ def check_no_back_edges(state: dict) -> tuple[bool, str]:
 
     for dep in dependencies:
         dep_organ = dep.get("organ", "")
-        if organ in organ_order and dep_organ in organ_order:
-            if organ_order[dep_organ] > organ_order[organ]:
-                return False, f"Back-edge detected: ORGAN-{organ} depends on ORGAN-{dep_organ}"
+        if (
+            organ in organ_order
+            and dep_organ in organ_order
+            and organ_order[dep_organ] > organ_order[organ]
+        ):
+            return False, f"Back-edge detected: ORGAN-{organ} depends on ORGAN-{dep_organ}"
     return True, "No back-edges in dependency graph"
 
 
@@ -101,7 +104,20 @@ BUILTIN_RULES: list[Rule] = [
     Rule("no-back-edges", "No reverse dependency edges allowed", check_no_back_edges),
     Rule("valid-doc-status", "Documentation status must be valid", check_documentation_status),
     Rule("valid-impl-status", "Implementation status must be valid", check_implementation_status),
-    Rule("ci-enabled", "CI must be enabled for all governed repos", check_ci_enabled, severity="warning"),
-    Rule("security-for-preset", "Security scanning must match preset level", check_security_for_preset),
-    Rule("compliance-for-enterprise", "Enterprise preset requires compliance", check_compliance_for_enterprise),
+    Rule(
+        "ci-enabled",
+        "CI must be enabled for all governed repos",
+        check_ci_enabled,
+        severity="warning",
+    ),
+    Rule(
+        "security-for-preset",
+        "Security scanning must match preset level",
+        check_security_for_preset,
+    ),
+    Rule(
+        "compliance-for-enterprise",
+        "Enterprise preset requires compliance",
+        check_compliance_for_enterprise,
+    ),
 ]

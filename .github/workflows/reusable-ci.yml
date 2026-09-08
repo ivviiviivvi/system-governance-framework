@@ -14,10 +14,10 @@ on:
         type: string
         default: 'auto'
       coverage-enabled:
-        description: 'Override coverage reporting setting'
+        description: 'Coverage override: auto inherits config; quote true or false'
         required: false
-        type: boolean
-        default: null
+        type: string
+        default: 'auto'
     secrets:
       codecov-token:
         description: 'Codecov token for coverage upload'
@@ -25,14 +25,14 @@ on:
 
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 jobs:
   setup:
     name: Configuration & Detection
     runs-on: ubuntu-latest
-    continue-on-error: true
+    permissions:
+      contents: read
+      actions: read
     outputs:
       config: ${{ steps.load-config.outputs.config }}
       languages: ${{ steps.detect-languages.outputs.languages }}
@@ -42,61 +42,153 @@ jobs:
       has-java: ${{ steps.detect-languages.outputs.has-java }}
       ci-enabled: ${{ steps.check-features.outputs.ci-enabled }}
       coverage-enabled: ${{ steps.check-features.outputs.coverage-enabled }}
+      pre-commit-enabled: ${{ steps.check-features.outputs.pre-commit-enabled }}
+      defining-workflow-sha: ${{ steps.workflow-identity.outputs.sha }}
+      defining-workflow-repository: ${{ steps.workflow-identity.outputs.repository }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      - name: Validate defining workflow identity
+        id: workflow-identity
+        env:
+          GOVERNANCE_CALLER_REPOSITORY: ${{ github.repository }}
+          GOVERNANCE_CALLER_REPOSITORY_ID: ${{ github.repository_id }}
+          GOVERNANCE_CALLER_SHA: ${{ github.sha }}
+          GOVERNANCE_CALLER_EVENT: ${{ github.event_name }}
+          GOVERNANCE_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GOVERNANCE_RUN_ID: ${{ github.run_id }}
+          GOVERNANCE_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GOVERNANCE_READ_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I - <<'PYTHON'
+          import json
+          import os
+          import re
+          import urllib.request
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  raise ValueError("redirected identity response")
+
+          def unique_object(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      raise ValueError("duplicate metadata key")
+                  result[key] = value
+              return result
+
+          try:
+              repository = os.environ["GOVERNANCE_CALLER_REPOSITORY"]
+              run_id = os.environ["GOVERNANCE_RUN_ID"]
+              attempt = os.environ["GOVERNANCE_RUN_ATTEMPT"]
+              event = os.environ["GOVERNANCE_CALLER_EVENT"]
+              expected_head = (os.environ["GOVERNANCE_PR_HEAD_SHA"]
+                               if event in ("pull_request", "pull_request_target")
+                               else os.environ["GOVERNANCE_CALLER_SHA"])
+              if not re.fullmatch(r"[0-9a-f]{40}", expected_head):
+                  raise ValueError("invalid event head")
+              if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+                  raise ValueError("invalid caller repository")
+              if not all(re.fullmatch(r"[1-9][0-9]*", item) for item in (run_id, attempt)):
+                  raise ValueError("invalid run identity")
+              url = f"https://api.github.com/repos/{repository}/actions/runs/{run_id}/attempts/{attempt}"
+              request = urllib.request.Request(url, headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": "Bearer " + os.environ["GOVERNANCE_READ_TOKEN"],
+                  "X-GitHub-Api-Version": "2022-11-28",
+              })
+              with urllib.request.build_opener(NoRedirect).open(request, timeout=15) as response:
+                  raw = response.read(1024 * 1024 + 1)
+              if len(raw) > 1024 * 1024:
+                  raise ValueError("oversized run metadata")
+              run = json.loads(raw, object_pairs_hook=unique_object)
+              if (type(run["id"]) is not int or run["id"] != int(run_id)
+                      or type(run["run_attempt"]) is not int or run["run_attempt"] != int(attempt)
+                      or run["repository"]["full_name"] != repository
+                      or str(run["repository"]["id"]) != os.environ["GOVERNANCE_CALLER_REPOSITORY_ID"]
+                      or run["event"] != event or run["head_sha"] != expected_head):
+                  raise ValueError("run identity mismatch")
+              trusted_repository = "organvm-iv-taxis/system-governance-framework"
+              prefix = trusted_repository + "/.github/workflows/reusable-ci.yml@"
+              references = run["referenced_workflows"]
+              if not isinstance(references, list):
+                  raise ValueError("missing workflow references")
+              matches = [item for item in references
+                         if isinstance(item, dict) and isinstance(item.get("path"), str)
+                         and item["path"].startswith(prefix) and item["path"] != prefix]
+              if len(matches) != 1 or not re.fullmatch(r"[0-9a-f]{40}", matches[0].get("sha", "")):
+                  raise ValueError("missing or ambiguous defining revision")
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+                  output.write(f"repository={trusted_repository}\nsha={matches[0]['sha']}\n")
+          except Exception:
+              raise SystemExit("Defining workflow metadata unavailable or invalid; refusing caller code.")
+          PYTHON
+
+      - name: Checkout defining governance revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ steps.workflow-identity.outputs.repository }}
+          ref: ${{ steps.workflow-identity.outputs.sha }}
+          persist-credentials: false
+
+      - name: Checkout caller source as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          path: caller-source
+          persist-credentials: false
+
+      - name: Set up trusted parser Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned parser dependencies in an isolated environment
+        run: |
+          python -m venv .governance-venv
+          .governance-venv/bin/python -m pip install --disable-pip-version-check 'PyYAML==6.0.3' 'jsonschema==4.26.0'
+          echo "$GITHUB_WORKSPACE/.governance-venv/bin" >> "$GITHUB_PATH"
 
       - name: Load governance configuration
         id: load-config
         uses: ./.github/actions/load-config
         with:
+          source-root: caller-source
           config-path: ${{ inputs.config-path }}
 
       - name: Detect project languages
         id: detect-languages
         uses: ./.github/actions/detect-languages
         with:
+          source-root: caller-source
           override: ${{ inputs.languages }}
 
       - name: Check feature flags
         id: check-features
-        run: |
-          CONFIG='${{ steps.load-config.outputs.config }}'
-
-          # Check if CI is enabled
-          CI_ENABLED=$(echo "$CONFIG" | jq -r '.features.ci.enabled // true')
-          echo "ci-enabled=$CI_ENABLED" >> $GITHUB_OUTPUT
-
-          # Check if coverage is enabled (input override takes precedence)
-          if [ "${{ inputs.coverage-enabled }}" != "null" ]; then
-            COVERAGE_ENABLED="${{ inputs.coverage-enabled }}"
-          else
-            COVERAGE_ENABLED=$(echo "$CONFIG" | jq -r '.features.ci["test-coverage"] // true')
-          fi
-          echo "coverage-enabled=$COVERAGE_ENABLED" >> $GITHUB_OUTPUT
-
-          echo "📋 Feature Flags:"
-          echo "  CI Enabled: $CI_ENABLED"
-          echo "  Coverage Enabled: $COVERAGE_ENABLED"
+        env:
+          GOVERNANCE_CONFIG_JSON: ${{ steps.load-config.outputs.config }}
+          GOVERNANCE_COVERAGE: ${{ inputs.coverage-enabled }}
+        run: python -I "$GITHUB_WORKSPACE/src/workflow_inputs.py" features
 
   pre-commit:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: setup
-    if: fromJSON(needs.setup.outputs.config).features.quality.enabled != false
+    if: needs.setup.outputs.pre-commit-enabled == 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Cache pre-commit environments
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -112,17 +204,18 @@ jobs:
   test-python:
     name: Test Python
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: setup
     if: |
       fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
       needs.setup.outputs.has-python == 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.x'
           cache: 'pip'
@@ -136,7 +229,7 @@ jobs:
             pip install -r requirements-dev.txt
           fi
           if [ -f pyproject.toml ]; then
-            pip install -e .[dev] || pip install -e .
+            pip install -e '.[dev]'
           fi
 
       - name: Run tests
@@ -148,12 +241,25 @@ jobs:
               pytest
             fi
           else
-            echo "⚠️  pytest not found, skipping tests"
+            echo "::error::Python was detected but pytest is unavailable; no tests were executed."
+            exit 1
+          fi
+
+      - name: Check coverage credential availability
+        id: coverage-token
+        if: needs.setup.outputs.coverage-enabled == 'true'
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+        run: |
+          if [[ -n "$CODECOV_TOKEN" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload coverage
-        if: needs.setup.outputs.coverage-enabled == 'true' && secrets.codecov-token != ''
-        uses: codecov/codecov-action@v7
+        if: needs.setup.outputs.coverage-enabled == 'true' && steps.coverage-token.outputs.available == 'true'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.codecov-token }}
           file: ./coverage.xml
@@ -163,17 +269,18 @@ jobs:
   test-javascript:
     name: Test JavaScript/TypeScript
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: setup
     if: |
       fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
       needs.setup.outputs.has-javascript == 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '18'
           cache: 'npm'
@@ -183,19 +290,32 @@ jobs:
 
       - name: Run tests
         run: |
-          if npm run test -- --help &> /dev/null; then
+          if node -e 'const p = require("./package.json"); process.exit(typeof p.scripts?.test === "string" && p.scripts.test.trim() ? 0 : 1)'; then
             if [ "${{ needs.setup.outputs.coverage-enabled }}" = "true" ]; then
               npm run test -- --coverage
             else
               npm test
             fi
           else
-            echo "⚠️  No test script found, skipping"
+            echo "::error::JavaScript was detected but no test script exists; no tests were executed."
+            exit 1
+          fi
+
+      - name: Check coverage credential availability
+        id: coverage-token
+        if: needs.setup.outputs.coverage-enabled == 'true'
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+        run: |
+          if [[ -n "$CODECOV_TOKEN" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload coverage
-        if: needs.setup.outputs.coverage-enabled == 'true' && secrets.codecov-token != ''
-        uses: codecov/codecov-action@v7
+        if: needs.setup.outputs.coverage-enabled == 'true' && steps.coverage-token.outputs.available == 'true'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.codecov-token }}
           flags: javascript
@@ -204,17 +324,18 @@ jobs:
   test-go:
     name: Test Go
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: setup
     if: |
       fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
       needs.setup.outputs.has-go == 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version: '1.21'
           cache: true
@@ -227,9 +348,21 @@ jobs:
             go test -v ./...
           fi
 
+      - name: Check coverage credential availability
+        id: coverage-token
+        if: needs.setup.outputs.coverage-enabled == 'true'
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+        run: |
+          if [[ -n "$CODECOV_TOKEN" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload coverage
-        if: needs.setup.outputs.coverage-enabled == 'true' && secrets.codecov-token != ''
-        uses: codecov/codecov-action@v7
+        if: needs.setup.outputs.coverage-enabled == 'true' && steps.coverage-token.outputs.available == 'true'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.codecov-token }}
           file: ./coverage.out
@@ -239,17 +372,18 @@ jobs:
   test-java:
     name: Test Java
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: setup
     if: |
       fromJSON(needs.setup.outputs.config).features.ci.enabled != false &&
       needs.setup.outputs.has-java == 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -263,10 +397,15 @@ jobs:
         if: hashFiles('**/build.gradle*') != ''
         run: ./gradlew test
 
+      - name: Reject missing Java test configuration
+        if: hashFiles('**/pom.xml') == '' && hashFiles('**/build.gradle*') == ''
+        run: |
+          echo "::error::Java was detected but neither Maven nor Gradle test configuration exists."
+          exit 1
+
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    continue-on-error: true
     needs: [setup, pre-commit, test-python, test-javascript, test-go, test-java]
     if: always()
 

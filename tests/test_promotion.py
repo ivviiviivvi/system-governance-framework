@@ -1,10 +1,11 @@
 """Tests for the promotion state machine."""
 
-import sys
 import importlib
 from unittest.mock import MagicMock, patch
-from src.promotion import VALID_TRANSITIONS, can_promote, promote
+
 import src.promotion as promotion_module
+from src.promotion import VALID_TRANSITIONS, can_promote, promote
+
 
 class TestCanPromote:
     def test_planned_to_skeleton(self):
@@ -70,7 +71,7 @@ class TestStateMachine:
     def test_full_lifecycle(self):
         path = ["PLANNED", "SKELETON", "PROTOTYPE", "PRODUCTION", "ARCHIVED"]
         for i in range(len(path) - 1):
-            assert can_promote(path[i], path[i + 1]), f"{path[i]} → {path[i+1]} should be valid"
+            assert can_promote(path[i], path[i + 1]), f"{path[i]} → {path[i + 1]} should be valid"
 
 
 class TestEngineIntegration:
@@ -78,15 +79,18 @@ class TestEngineIntegration:
         mock_engine = MagicMock()
         mock_sm = MagicMock()
         mock_engine.governance.state_machine = mock_sm
-        
-        with patch.dict('sys.modules', {
-            'organvm_engine': mock_engine,
-            'organvm_engine.governance': mock_engine.governance,
-            'organvm_engine.governance.state_machine': mock_sm,
-        }):
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "organvm_engine": mock_engine,
+                "organvm_engine.governance": mock_engine.governance,
+                "organvm_engine.governance.state_machine": mock_sm,
+            },
+        ):
             importlib.reload(promotion_module)
             assert promotion_module._HAS_ENGINE_STATE_MACHINE is True
-            
+
         # Restore original state
         importlib.reload(promotion_module)
         assert promotion_module._HAS_ENGINE_STATE_MACHINE is False
@@ -95,10 +99,14 @@ class TestEngineIntegration:
         promotion_module._engine_check_transition = MagicMock(return_value=(True, ""))
         # Both CANONICAL and LEGACY mapped identically (or not mapped)
         assert promotion_module._engine_allowed("CUSTOM_STATE", "CUSTOM_STATE_2") is True
-        promotion_module._engine_check_transition.assert_called_with("CUSTOM_STATE", "CUSTOM_STATE_2")
+        promotion_module._engine_check_transition.assert_called_with(
+            "CUSTOM_STATE", "CUSTOM_STATE_2"
+        )
 
     def test_engine_allowed_different_canonical(self):
-        promotion_module._engine_get_valid_transitions = MagicMock(return_value=["CANDIDATE", "GRADUATED"])
+        promotion_module._engine_get_valid_transitions = MagicMock(
+            return_value=["CANDIDATE", "GRADUATED"]
+        )
         # "SKELETON" -> "PROTOTYPE" maps to "LOCAL" -> "CANDIDATE"
         assert promotion_module._engine_allowed("SKELETON", "PROTOTYPE") is True
         promotion_module._engine_get_valid_transitions.assert_called_with("LOCAL")
@@ -106,22 +114,22 @@ class TestEngineIntegration:
     def test_engine_allowed_unarchive(self):
         promotion_module._engine_get_valid_transitions = MagicMock(return_value=[])
         assert promotion_module._engine_allowed("ARCHIVED", "PRODUCTION") is True
-        
+
     def test_engine_allowed_false(self):
         promotion_module._engine_check_transition = MagicMock(return_value=(False, ""))
         promotion_module._engine_get_valid_transitions = MagicMock(return_value=[])
         assert promotion_module._engine_allowed("SKELETON", "ARCHIVED") is False
 
-    @patch.object(promotion_module, '_HAS_ENGINE_STATE_MACHINE', True)
-    @patch.object(promotion_module, '_engine_allowed', return_value=True)
+    @patch.object(promotion_module, "_HAS_ENGINE_STATE_MACHINE", True)
+    @patch.object(promotion_module, "_engine_allowed", return_value=True)
     def test_can_promote_with_engine(self, mock_engine_allowed):
         # Even if legacy denies it, engine allows it
         assert promotion_module.can_promote("PLANNED", "PRODUCTION") is True
-        
-    @patch.object(promotion_module, '_HAS_ENGINE_STATE_MACHINE', True)
+
+    @patch.object(promotion_module, "_HAS_ENGINE_STATE_MACHINE", True)
     def test_promote_failed_with_engine(self):
         promotion_module._engine_get_valid_transitions = MagicMock(return_value=["CANDIDATE"])
-        with patch.object(promotion_module, 'can_promote', return_value=False):
+        with patch.object(promotion_module, "can_promote", return_value=False):
             # Temporarily clear the transitions to hit line 108
             original = promotion_module.VALID_TRANSITIONS["SKELETON"]
             promotion_module.VALID_TRANSITIONS["SKELETON"] = set()

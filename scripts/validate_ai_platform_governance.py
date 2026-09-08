@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate the AI platform governance evidence inventory."""
 
 from __future__ import annotations
@@ -10,10 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ai_platform_governance import InventoryError, load_inventory, summarize_inventory  # noqa: E402
-
 
 def main() -> int:
+    from ai_platform_governance import InventoryError, load_inventory, summarize_inventory
+
     inventory_path = (
         Path(sys.argv[1])
         if len(sys.argv) > 1

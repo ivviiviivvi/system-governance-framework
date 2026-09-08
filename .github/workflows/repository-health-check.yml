@@ -28,14 +28,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          persist-credentials: false
           fetch-depth: 0 # Full history for comprehensive analysis
 
       - name: Check branch protection
         id: branch-protection
         run: |
-          echo "Checking branch protection rules..."
-          # Add logic to verify branch protection via GitHub API
-          echo "branch_protected=true" >> $GITHUB_OUTPUT
+          echo "::warning::Branch protection was not verified; an authorized ruleset/protection read is required."
+          echo "branch_protected=unknown" >> "$GITHUB_OUTPUT"
+          echo "evidence_status=not_verified" >> "$GITHUB_OUTPUT"
 
       - name: Check community health files
         id: community-health
@@ -140,6 +141,11 @@ jobs:
 
           score=100
 
+          # An unknown authority boundary cannot earn protection credit.
+          if [ "${{ steps.branch-protection.outputs.branch_protected }}" != "true" ]; then
+            score=$((score - 15))
+          fi
+
           # Deduct points for missing community files
           if [ "${{ steps.community-health.outputs.status }}" == "incomplete" ]; then
             score=$((score - 15))
@@ -208,6 +214,11 @@ jobs:
           ---
 
           ## Module 1: Repository Configuration
+
+          ### Branch Protection
+          - **Status:** ${{ steps.branch-protection.outputs.branch_protected }}
+          - **Evidence:** ${{ steps.branch-protection.outputs.evidence_status }}
+          - An unverified result is not proof that the branch is unprotected.
 
           ### Community Health Files
           - **Status:** ${{ steps.community-health.outputs.status }}

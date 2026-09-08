@@ -7,17 +7,24 @@ on:
     branches: [ main, master, develop ]
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 10
+    permissions:
+      contents: read
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12"]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -25,13 +32,21 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev]"
 
       - name: Lint with ruff
-        continue-on-error: true
-        run: ruff check --output-format=github .
+        run: python -m ruff check --output-format=github .
 
       - name: Test with pytest
-        run: pytest --cov=src --cov-report=term -v
+        run: python -m pytest --cov=src --cov-report=term -v
+
+  reusable-identity-canary:
+    name: Reusable defining identity canary
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      config-path: config/presets/minimal.yml
+      languages: '[]'
+      coverage-enabled: 'false'

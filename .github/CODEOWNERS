@@ -1,1 +1,15 @@
 * @4-b100m
+
+# Changes to authority, execution, and verification inputs require the human code owner.
+/.github/CODEOWNERS @4-b100m
+/.github/workflows/ @4-b100m
+/.github/actions/ @4-b100m
+/AGENTS.md @4-b100m
+/**/AGENTS.md @4-b100m
+/SKILL.md @4-b100m
+/**/SKILL.md @4-b100m
+/.github/copilot-instructions.md @4-b100m
+/.github/instructions/ @4-b100m
+/config/ @4-b100m
+/src/receipt_auditor.py @4-b100m
+/tests/fixtures/receipts/ @4-b100m

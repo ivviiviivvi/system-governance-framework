@@ -14,6 +14,8 @@ from dataclasses import dataclass
 try:
     from organvm_engine.governance.state_machine import (
         check_transition as _engine_check_transition,
+    )
+    from organvm_engine.governance.state_machine import (
         get_valid_transitions as _engine_get_valid_transitions,
     )
 
@@ -73,10 +75,7 @@ def _engine_allowed(current: str, target: str) -> bool:
 
     # The canonical machine models ARCHIVED as terminal, but the legacy API
     # keeps the original unarchive path. Preserve that repo behavior.
-    if current == "ARCHIVED" and target == "PRODUCTION":
-        return True
-
-    return False
+    return current == "ARCHIVED" and target == "PRODUCTION"
 
 
 def can_promote(current: str, target: str) -> bool:
@@ -100,13 +99,14 @@ def promote(current: str, target: str, repo_name: str = "") -> PromotionResult:
         return PromotionResult(False, current, target, f"Unknown target state: {target}")
     if can_promote(current, target):
         return PromotionResult(
-            True, current, target,
-            f"{repo_name or 'Repo'}: {current} → {target}"
+            True, current, target, f"{repo_name or 'Repo'}: {current} → {target}"
         )
     allowed = VALID_TRANSITIONS.get(current, set())
     if _HAS_ENGINE_STATE_MACHINE and not allowed:
         allowed = set(_engine_get_valid_transitions(_LEGACY_TO_CANONICAL.get(current, current)))
     return PromotionResult(
-        False, current, target,
-        f"Cannot promote from {current} to {target}. Allowed: {sorted(allowed)}"
+        False,
+        current,
+        target,
+        f"Cannot promote from {current} to {target}. Allowed: {sorted(allowed)}",
     )
