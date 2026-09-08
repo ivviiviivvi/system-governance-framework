@@ -87,8 +87,11 @@ def test_primary_ci_has_only_read_contents_permission():
 def test_reusable_ci_has_no_write_authority():
     workflow = load_yaml(ROOT / ".github/workflows/reusable-ci.yml")
     assert workflow["permissions"] == {"contents": "read"}
-    for job in workflow["jobs"].values():
-        assert job.get("permissions", workflow["permissions"]) == {"contents": "read"}
+    for name, job in workflow["jobs"].items():
+        expected = (
+            {"contents": "read", "actions": "read"} if name == "setup" else {"contents": "read"}
+        )
+        assert job.get("permissions", workflow["permissions"]) == expected
 
 
 def test_reusable_conditions_do_not_use_forbidden_secrets_context():

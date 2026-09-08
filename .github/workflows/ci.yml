@@ -39,3 +39,14 @@ jobs:
 
       - name: Test with pytest
         run: python -m pytest --cov=src --cov-report=term -v
+
+  reusable-identity-canary:
+    name: Reusable defining identity canary
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      config-path: config/presets/minimal.yml
+      languages: '[]'
+      coverage-enabled: 'false'

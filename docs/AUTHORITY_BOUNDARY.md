@@ -60,3 +60,28 @@ be established through its collaborator-permission response. A review-request AP
 no returned requested reviewer does not establish eligibility or delivery. The policy files are
 proposals until the owner demonstrates the authorization path; a separately authorized bootstrap
 may break the introduction dependency, never the permanent authority boundary.
+
+
+### Defining workflow identity
+
+Reusable CI reads the authenticated workflow-run attempt metadata before checking
+out any repository source. Its unique `referenced_workflows` entry for
+`organvm-iv-taxis/system-governance-framework/.github/workflows/reusable-ci.yml`
+supplies the immutable defining SHA. Missing, ambiguous, oversized, malformed or
+mismatched metadata fails closed. The setup job alone needs `actions: read` in
+addition to `contents: read`; callers must grant those read permissions. No OIDC
+permission or caller-provided defining revision is accepted. Repository transfers
+require an independently reviewed update to the trusted repository name.
+
+The existing Python CI now calls the local reusable workflow with the existing
+minimal preset and an empty language list. This canary must execute its identity,
+checkout and parser steps; the intentionally absent language jobs are skips, not
+test evidence. Offline mocked API tests do not establish hosted canary acceptance.
+
+Receipt aggregates use failure, then pending, then skipped, then success
+precedence across execution, verification and publication. Both claimed stages
+and available independent observations must agree with the aggregate; successful
+individual stages do not erase incomplete or failed stages.
+
+Sources: [GitHub contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)
+and [workflow-run attempt metadata](https://docs.github.com/en/rest/actions/workflow-runs#get-a-workflow-run-attempt).

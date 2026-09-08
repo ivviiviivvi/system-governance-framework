@@ -145,8 +145,7 @@ def test_pre_commit_feature_output_honors_preset(tmp_path, preset, expected):
 
 def test_disabled_quality_section_suppresses_pre_commit(tmp_path):
     (tmp_path / "config.yml").write_text(
-        "framework: {version: '3.0.0'}\n"
-        "features: {quality: {enabled: false, pre-commit: true}}\n",
+        "framework: {version: '3.0.0'}\nfeatures: {quality: {enabled: false, pre-commit: true}}\n",
     )
     config = load_config(tmp_path, "config.yml")
     assert feature_outputs(config)["pre-commit-enabled"] == "false"
@@ -247,32 +246,103 @@ def test_reusable_actions_come_from_defining_revision_not_caller():
     assert workflow["on"]["workflow_call"]["inputs"]["coverage-enabled"]["default"] == "auto"
 
 
-@pytest.mark.parametrize(
-    "sha, path, expected",
-    [
-        ("a" * 40, ".github/workflows/reusable-ci.yml", 0),
-        ("main", ".github/workflows/reusable-ci.yml", 1),
-        ("", ".github/workflows/reusable-ci.yml", 1),
-        ("a" * 40, ".github/workflows/other.yml", 1),
-    ],
-)
-def test_actual_defining_identity_gate_is_fail_closed(tmp_path, sha, path, expected):
+def test_defining_identity_uses_supported_authenticated_run_metadata(tmp_path, monkeypatch):
+    import io
+    import urllib.request
+
     workflow = yaml.load(
         (ROOT / ".github/workflows/reusable-ci.yml").read_text(), Loader=yaml.BaseLoader
     )
-    probe = workflow["jobs"]["setup"]["steps"][0]
-    result = subprocess.run(
-        ["/bin/bash", "--noprofile", "--norc", "-e", "-c", probe["run"]],
-        env={
-            "PATH": os.defpath,
-            "GITHUB_OUTPUT": str(tmp_path / "output"),
-            "GOVERNANCE_WORKFLOW_REPOSITORY": "owner/governance",
-            "GOVERNANCE_WORKFLOW_SHA": sha,
-            "GOVERNANCE_WORKFLOW_PATH": path,
-        },
-        text=True,
-        capture_output=True,
-        check=False,
-        timeout=10,
-    )
-    assert result.returncode == expected
+    setup = workflow["jobs"]["setup"]
+    probe = setup["steps"][0]
+    assert setup["permissions"] == {"contents": "read", "actions": "read"}
+    assert probe["env"]["GOVERNANCE_RUN_ATTEMPT"] == "${{ github.run_attempt }}"
+    assert probe["env"]["GOVERNANCE_READ_TOKEN"] == "${{ github.token }}"
+    assert "job.workflow_" not in json.dumps(workflow)
+    script = probe["run"].split("<<'PYTHON'\n", 1)[1].rsplit("\nPYTHON", 1)[0]
+    trusted = "organvm-iv-taxis/system-governance-framework"
+    reference = {"path": trusted + "/.github/workflows/reusable-ci.yml@main", "sha": "b" * 40}
+    baseline = {
+        "id": 17,
+        "run_attempt": 2,
+        "event": "push",
+        "head_sha": "a" * 40,
+        "repository": {"id": 42, "full_name": "caller/project"},
+        "referenced_workflows": [reference],
+    }
+    for key, value in {
+        "GOVERNANCE_CALLER_REPOSITORY": "caller/project",
+        "GOVERNANCE_CALLER_REPOSITORY_ID": "42",
+        "GOVERNANCE_CALLER_SHA": "a" * 40,
+        "GOVERNANCE_CALLER_EVENT": "push",
+        "GOVERNANCE_PR_HEAD_SHA": "",
+        "GOVERNANCE_RUN_ID": "17",
+        "GOVERNANCE_RUN_ATTEMPT": "2",
+        "GOVERNANCE_READ_TOKEN": "synthetic-token",
+        "GITHUB_OUTPUT": str(tmp_path / "identity"),
+    }.items():
+        monkeypatch.setenv(key, value)
+
+    class Opener:
+        raw = json.dumps(baseline).encode()
+
+        def open(self, request, timeout):
+            assert request.full_url == (
+                "https://api.github.com/repos/caller/project/actions/runs/17/attempts/2"
+            )
+            assert request.get_header("Authorization") == "Bearer synthetic-token"
+            assert timeout == 15
+            return io.BytesIO(self.raw)
+
+    opener = Opener()
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *args: opener)
+    exec(compile(script, "identity-bootstrap", "exec"), {})
+    assert (tmp_path / "identity").read_text() == f"repository={trusted}\nsha={'b' * 40}\n"
+
+    # PR run metadata identifies the candidate, while github.sha identifies
+    # GitHub's synthetic merge checkout. pull_request_target likewise associates
+    # the run with the PR candidate, not the base-controlled checkout revision.
+    for event in ("pull_request", "pull_request_target"):
+        monkeypatch.setenv("GOVERNANCE_CALLER_EVENT", event)
+        monkeypatch.setenv("GOVERNANCE_CALLER_SHA", "c" * 40)
+        monkeypatch.setenv("GOVERNANCE_PR_HEAD_SHA", "a" * 40)
+        opener.raw = json.dumps(dict(baseline, event=event)).encode()
+        (tmp_path / "identity").unlink()
+        exec(compile(script, "identity-bootstrap", "exec"), {})
+        assert (tmp_path / "identity").read_text().endswith(f"sha={'b' * 40}\n")
+        opener.raw = json.dumps(dict(baseline, event=event, head_sha="c" * 40)).encode()
+        with pytest.raises(SystemExit, match="refusing caller code"):
+            exec(compile(script, "identity-bootstrap", "exec"), {})
+    monkeypatch.setenv("GOVERNANCE_CALLER_EVENT", "push")
+    monkeypatch.setenv("GOVERNANCE_CALLER_SHA", "a" * 40)
+    monkeypatch.setenv("GOVERNANCE_PR_HEAD_SHA", "")
+
+    malformed = [
+        dict(baseline, id=18),
+        dict(baseline, run_attempt=1),
+        dict(baseline, head_sha="c" * 40),
+        dict(baseline, id=True),
+        dict(baseline, repository={"id": 43, "full_name": "caller/project"}),
+        dict(baseline, referenced_workflows=[]),
+        dict(baseline, referenced_workflows=[reference, reference]),
+        dict(baseline, referenced_workflows=[dict(reference, sha="main")]),
+        dict(baseline, referenced_workflows=[dict(reference, path="evil/repo/workflow@main")]),
+        dict(baseline, referenced_workflows=None),
+    ]
+    for document in malformed:
+        (tmp_path / "identity").unlink(missing_ok=True)
+        opener.raw = json.dumps(document).encode()
+        with pytest.raises(SystemExit, match="refusing caller code"):
+            exec(compile(script, "identity-bootstrap", "exec"), {})
+        assert not (tmp_path / "identity").exists()
+    for raw in (b'{"id":17,"id":17}', b"not-json", b"x" * (1024 * 1024 + 1)):
+        opener.raw = raw
+        with pytest.raises(SystemExit, match="refusing caller code"):
+            exec(compile(script, "identity-bootstrap", "exec"), {})
+
+    def unavailable(*args):
+        raise OSError("synthetic API failure")
+
+    monkeypatch.setattr(urllib.request, "build_opener", unavailable)
+    with pytest.raises(SystemExit, match="refusing caller code"):
+        exec(compile(script, "identity-bootstrap", "exec"), {})

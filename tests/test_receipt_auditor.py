@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+from itertools import product
 from pathlib import Path
 
 import pytest
@@ -414,3 +415,30 @@ def test_no_network_or_process_or_write_calls(monkeypatch):
     monkeypatch.setattr(socket, "socket", forbidden)
     monkeypatch.setattr(subprocess, "Popen", forbidden)
     assert audit_receipt(receipt, context=context)["valid"] is True
+
+
+@pytest.mark.parametrize(
+    "statuses", list(product(("success", "failure", "pending", "skipped"), repeat=3))
+)
+def test_every_aggregate_must_match_claimed_and_observed_stages(statuses):
+    receipt, context = synthetic_case()
+    for stage, collection, record, status in zip(
+        ("execution", "verification", "publication"),
+        ("executions", "verifications", "publications"),
+        ("result-1", "verify-1", "publish-1"),
+        statuses,
+        strict=True,
+    ):
+        receipt["stages"][stage]["status"] = status
+        context[collection][record]["status"] = status
+    receipt["claim"]["execution_success"] = statuses[0] == "success"
+    expected = next(s for s in ("failure", "pending", "skipped", "success") if s in statuses)
+    for aggregate in ("success", "failure", "pending", "skipped"):
+        receipt["aggregate"] = aggregate
+        result = audit_receipt(receipt, context=context_from_synthetic(context))
+        assert result["valid"] is (aggregate == expected)
+        assert result["production_authorized"] is False
+        if aggregate != expected:
+            assert (
+                "FALSE_AGGREGATE_SUCCESS" if aggregate == "success" else "AGGREGATE_STATUS_MISMATCH"
+            ) in codes(result)

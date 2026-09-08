@@ -633,20 +633,25 @@ def audit_receipt(receipt: Any, *, context: TrustedAuditContext | None = None) -
                 "publication.completed_at",
                 "publication must follow verification",
             )
-    if parsed.aggregate == "success":
-        if any(
-            stage.status != "success"
-            for stage in (execution, stages.verification, stages.publication)
-        ):
+    # Aggregate precedence is failure, pending, skipped, success. Skipped work
+    # never becomes successful work merely because all executed stages passed.
+    for label, items in (
+        ("claimed", (execution, stages.verification, stages.publication)),
+        ("observed", (run, verification, publication)),
+    ):
+        if any(item is None for item in items):
+            continue  # Missing observations already produce their own findings.
+        statuses = {item.status for item in items}
+        expected_aggregate = next(
+            status for status in ("failure", "pending", "skipped", "success") if status in statuses
+        )
+        if parsed.aggregate != expected_aggregate:
             add(
-                "FALSE_AGGREGATE_SUCCESS", "aggregate", "one or more claimed stages did not succeed"
-            )
-        if any(
-            item is not None and item.status != "success"
-            for item in (run, verification, publication)
-        ):
-            add(
-                "FALSE_AGGREGATE_SUCCESS", "aggregate", "independent stage evidence did not succeed"
+                "FALSE_AGGREGATE_SUCCESS"
+                if parsed.aggregate == "success"
+                else "AGGREGATE_STATUS_MISMATCH",
+                "aggregate",
+                f"aggregate contradicts {label} stage outcomes",
             )
 
     review = context.public_review
